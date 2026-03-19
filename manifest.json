@@ -1,0 +1,9 @@
+{
+  "name": "개인카드",
+  "short_name": "개인카드",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f5f6f8",
+  "theme_color": "#222222"
+}

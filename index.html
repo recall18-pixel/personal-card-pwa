@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>개인카드</title>
+  <link rel="manifest" href="manifest.json" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="app">
+    <header class="header">
+      <h1>📇 개인카드</h1>
+      <div class="header-buttons">
+        <button onclick="addCard()">사람 추가</button>
+        <button onclick="saveBackup()">백업(JSON)</button>
+      </div>
+    </header>
+
+    <main id="app"></main>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
