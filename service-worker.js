@@ -1,5 +1,7 @@
-const CACHE_NAME = "personal-card-cache-v2";
-const FILES_TO_CACHE = [
+const CACHE_VERSION = "v3";
+const STATIC_CACHE = `static-${CACHE_VERSION}`;
+
+const APP_SHELL = [
   "./",
   "./index.html",
   "./style.css",
@@ -7,49 +9,76 @@ const FILES_TO_CACHE = [
   "./manifest.json"
 ];
 
-self.addEventListener("install", event => {
-  event.waitUntil(
-    caches.open(CACHE_NAME).then(cache => cache.addAll(FILES_TO_CACHE))
-  );
+// 설치
+self.addEventListener("install", (event) => {
   self.skipWaiting();
-});
-
-self.addEventListener("activate", event => {
   event.waitUntil(
-    caches.keys().then(keys =>
-      Promise.all(
-        keys
-          .filter(key => key !== CACHE_NAME)
-          .map(key => caches.delete(key))
-      )
-    )
+    caches.open(STATIC_CACHE).then((cache) => cache.addAll(APP_SHELL))
   );
-  self.clients.claim();
 });
 
-self.addEventListener("fetch", event => {
-  if (event.request.method !== "GET") return;
-
-  event.respondWith(
-    caches.match(event.request).then(cachedResponse => {
-      if (cachedResponse) {
-        return cachedResponse;
-      }
-
-      return fetch(event.request)
-        .then(networkResponse => {
-          if (
-            event.request.url.startsWith(self.location.origin) &&
-            networkResponse.status === 200
-          ) {
-            const responseClone = networkResponse.clone();
-            caches.open(CACHE_NAME).then(cache => {
-              cache.put(event.request, responseClone);
-            });
+// 활성화
+self.addEventListener("activate", (event) => {
+  event.waitUntil(
+    (async () => {
+      const keys = await caches.keys();
+      await Promise.all(
+        keys.map((key) => {
+          if (key !== STATIC_CACHE) {
+            return caches.delete(key);
           }
-          return networkResponse;
         })
-        .catch(() => caches.match("./index.html"));
-    })
+      );
+      await self.clients.claim();
+    })()
   );
 });
+
+// fetch 처리
+self.addEventListener("fetch", (event) => {
+  const req = event.request;
+
+  if (req.method !== "GET") return;
+
+  const url = new URL(req.url);
+
+  if (url.origin !== location.origin) return;
+
+  if (
+    req.mode === "navigate" ||
+    (req.headers.get("accept") || "").includes("text/html")
+  ) {
+    event.respondWith(networkFirst(req));
+    return;
+  }
+
+  event.respondWith(staleWhileRevalidate(req));
+});
+
+async function networkFirst(request) {
+  try {
+    const fresh = await fetch(request, { cache: "no-store" });
+    const cache = await caches.open(STATIC_CACHE);
+    cache.put(request, fresh.clone());
+    return fresh;
+  } catch (error) {
+    const cached = await caches.match(request);
+    return cached || caches.match("./index.html");
+  }
+}
+
+async function staleWhileRevalidate(request) {
+  const cache = await caches.open(STATIC_CACHE);
+  const cached = await cache.match(request);
+
+  const networkPromise = fetch(request)
+    .then((response) => {
+      if (response && response.status === 200) {
+        cache.put(request, response.clone());
+      }
+      return response;
+    })
+    .catch(() => null);
+
+  return cached || networkPromise;
+}

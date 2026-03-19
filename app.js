@@ -3,6 +3,9 @@ const STORAGE_KEY = "personal_cards_v2";
 let people = loadPeople();
 let selectedPersonId = null;
 
+// =========================
+// 데이터 로드 / 저장
+// =========================
 function loadPeople() {
   const raw = localStorage.getItem(STORAGE_KEY);
   if (!raw) return [];
@@ -11,12 +14,12 @@ function loadPeople() {
     const parsed = JSON.parse(raw);
 
     // 구버전 memo -> notes 변환
-    return parsed.map(person => {
-      if (!person.notes) {
+    return parsed.map((person) => {
+      if (!Array.isArray(person.notes)) {
         person.notes = [];
       }
 
-      if (person.memo && person.memo.trim()) {
+      if (person.memo && String(person.memo).trim()) {
         person.notes.push({
           date: formatNow(),
           content: person.memo
@@ -39,6 +42,9 @@ function savePeople() {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(people));
 }
 
+// =========================
+// 공통 유틸
+// =========================
 function formatNow() {
   const now = new Date();
   const y = now.getFullYear();
@@ -58,8 +64,13 @@ function escapeHtml(str) {
     .replaceAll("'", "&#039;");
 }
 
+// =========================
+// 목록 렌더링
+// =========================
 function renderList() {
   const listEl = document.getElementById("personList");
+  if (!listEl) return;
+
   listEl.innerHTML = "";
 
   if (people.length === 0) {
@@ -70,7 +81,7 @@ function renderList() {
   people
     .slice()
     .sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt))
-    .forEach(person => {
+    .forEach((person) => {
       const card = document.createElement("div");
       card.className = "person-card";
       card.innerHTML = `
@@ -78,32 +89,38 @@ function renderList() {
           <strong>${escapeHtml(person.name)}</strong>
           <div class="sub">${escapeHtml(person.phone || "")}</div>
           <div class="tags">
-            ${(person.tags || []).map(tag => `<span class="tag">${escapeHtml(tag)}</span>`).join("")}
+            ${(person.tags || [])
+              .map((tag) => `<span class="tag">${escapeHtml(tag)}</span>`)
+              .join("")}
           </div>
           <div class="sub">기록 ${person.notes?.length || 0}개</div>
           <div class="sub">수정일: ${escapeHtml(person.updatedAt)}</div>
         </div>
         <div class="person-card-actions">
-          <button onclick="showDetail('${person.id}')">보기</button>
-          <button onclick="deletePerson('${person.id}')">삭제</button>
+          <button type="button" onclick="showDetail('${person.id}')">보기</button>
+          <button type="button" onclick="deletePerson('${person.id}')">삭제</button>
         </div>
       `;
       listEl.appendChild(card);
     });
 }
 
+// =========================
+// 상세 보기
+// =========================
 function showDetail(personId) {
   selectedPersonId = personId;
-  const person = people.find(p => p.id === personId);
+  const person = people.find((p) => p.id === personId);
   if (!person) return;
 
   const panel = document.getElementById("detailPanel");
   const content = document.getElementById("detailContent");
+  if (!panel || !content) return;
 
   const notesHtml = (person.notes || [])
     .slice()
     .reverse()
-    .map(note => {
+    .map((note) => {
       return `
         <div class="note-item">
           <div class="note-date">${escapeHtml(note.date)}</div>
@@ -117,7 +134,7 @@ function showDetail(personId) {
     <div class="detail-header">
       <h3>${escapeHtml(person.name)}</h3>
       <p>전화번호: ${escapeHtml(person.phone || "-")}</p>
-      <p>태그: ${(person.tags || []).map(t => `#${escapeHtml(t)}`).join(" ") || "-"}</p>
+      <p>태그: ${(person.tags || []).map((t) => `#${escapeHtml(t)}`).join(" ") || "-"}</p>
       <p>생성일: ${escapeHtml(person.createdAt)}</p>
       <p>수정일: ${escapeHtml(person.updatedAt)}</p>
     </div>
@@ -127,7 +144,7 @@ function showDetail(personId) {
     <div class="add-note-box">
       <h4>내용 추가</h4>
       <textarea id="newNoteText" placeholder="새로운 기록을 입력하세요"></textarea>
-      <button onclick="addNote()">추가</button>
+      <button type="button" onclick="addNote()">추가</button>
     </div>
 
     <hr>
@@ -141,17 +158,22 @@ function showDetail(personId) {
   panel.style.display = "block";
 }
 
+// =========================
+// 기록 추가
+// =========================
 function addNote() {
   if (!selectedPersonId) return;
 
   const textarea = document.getElementById("newNoteText");
+  if (!textarea) return;
+
   const text = textarea.value.trim();
   if (!text) {
     alert("추가할 내용을 입력하세요.");
     return;
   }
 
-  const person = people.find(p => p.id === selectedPersonId);
+  const person = people.find((p) => p.id === selectedPersonId);
   if (!person) return;
 
   if (!Array.isArray(person.notes)) {
@@ -170,64 +192,132 @@ function addNote() {
   showDetail(selectedPersonId);
 }
 
+// =========================
+// 사람 삭제
+// =========================
 function deletePerson(personId) {
-  const person = people.find(p => p.id === personId);
+  const person = people.find((p) => p.id === personId);
   if (!person) return;
 
   const ok = confirm(`${person.name} 카드를 삭제할까요?`);
   if (!ok) return;
 
-  people = people.filter(p => p.id !== personId);
+  people = people.filter((p) => p.id !== personId);
   savePeople();
   renderList();
 
   if (selectedPersonId === personId) {
     selectedPersonId = null;
-    document.getElementById("detailPanel").style.display = "none";
-    document.getElementById("detailContent").innerHTML = "";
+
+    const panel = document.getElementById("detailPanel");
+    const content = document.getElementById("detailContent");
+
+    if (panel) panel.style.display = "none";
+    if (content) content.innerHTML = "";
   }
 }
 
-document.getElementById("personForm").addEventListener("submit", function (e) {
-  e.preventDefault();
+// =========================
+// 사람 등록
+// =========================
+function bindForm() {
+  const form = document.getElementById("personForm");
+  if (!form) return;
 
-  const name = document.getElementById("name").value.trim();
-  const phone = document.getElementById("phone").value.trim();
-  const tagsRaw = document.getElementById("tags").value.trim();
-  const firstNote = document.getElementById("firstNote").value.trim();
+  form.addEventListener("submit", function (e) {
+    e.preventDefault();
 
-  if (!name) {
-    alert("이름은 필수입니다.");
-    return;
-  }
+    const name = document.getElementById("name")?.value.trim() || "";
+    const phone = document.getElementById("phone")?.value.trim() || "";
+    const tagsRaw = document.getElementById("tags")?.value.trim() || "";
+    const firstNote = document.getElementById("firstNote")?.value.trim() || "";
 
-  const tags = tagsRaw
-    ? tagsRaw.split(",").map(t => t.trim()).filter(Boolean)
-    : [];
+    if (!name) {
+      alert("이름은 필수입니다.");
+      return;
+    }
 
-  const person = {
-    id: String(Date.now()),
-    name,
-    phone,
-    tags,
-    notes: [],
-    createdAt: formatNow(),
-    updatedAt: formatNow()
-  };
+    const tags = tagsRaw
+      ? tagsRaw.split(",").map((t) => t.trim()).filter(Boolean)
+      : [];
 
-  if (firstNote) {
-    person.notes.push({
-      date: formatNow(),
-      content: firstNote
-    });
-  }
+    const now = formatNow();
 
-  people.push(person);
-  savePeople();
+    const person = {
+      id: String(Date.now()),
+      name,
+      phone,
+      tags,
+      notes: [],
+      createdAt: now,
+      updatedAt: now
+    };
+
+    if (firstNote) {
+      person.notes.push({
+        date: now,
+        content: firstNote
+      });
+    }
+
+    people.push(person);
+    savePeople();
+    renderList();
+
+    this.reset();
+    showDetail(person.id);
+  });
+}
+
+// =========================
+// 서비스워커 등록
+// =========================
+function registerServiceWorker() {
+  if (!("serviceWorker" in navigator)) return;
+
+  window.addEventListener("load", async () => {
+    try {
+      const registration = await navigator.serviceWorker.register("./service-worker.js");
+      console.log("Service Worker 등록 성공:", registration.scope);
+
+      // 페이지 로드 시 새 버전 체크
+      registration.update();
+
+      // 새 서비스워커 감지
+      registration.addEventListener("updatefound", () => {
+        const newWorker = registration.installing;
+        if (!newWorker) return;
+
+        newWorker.addEventListener("statechange", () => {
+          if (
+            newWorker.state === "installed" &&
+            navigator.serviceWorker.controller
+          ) {
+            console.log("새 버전 서비스워커가 설치되었습니다.");
+          }
+        });
+      });
+    } catch (error) {
+      console.error("Service Worker 등록 실패:", error);
+    }
+  });
+
+  // 새 서비스워커가 현재 페이지를 제어하면 자동 새로고침
+  let refreshing = false;
+  navigator.serviceWorker.addEventListener("controllerchange", () => {
+    if (refreshing) return;
+    refreshing = true;
+    window.location.reload();
+  });
+}
+
+// =========================
+// 초기 실행
+// =========================
+function init() {
+  bindForm();
   renderList();
+  registerServiceWorker();
+}
 
-  this.reset();
-  showDetail(person.id);
-});
-
-renderList();
+init();
