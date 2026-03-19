@@ -37,7 +37,32 @@ function loadPeople() {
     return [];
   }
 }
+function exportData() {
+  try {
+    const dataStr = JSON.stringify(people, null, 2);
 
+    const blob = new Blob([dataStr], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+
+    const a = document.createElement("a");
+    const now = new Date();
+
+    const filename = `personal_cards_backup_${now.getFullYear()}-${String(
+      now.getMonth() + 1
+    ).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}.json`;
+
+    a.href = url;
+    a.download = filename;
+    a.click();
+
+    URL.revokeObjectURL(url);
+
+    alert("백업 파일이 다운로드되었습니다.");
+  } catch (e) {
+    console.error(e);
+    alert("백업 실패");
+  }
+}
 function savePeople() {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(people));
 }
