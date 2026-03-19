@@ -3,21 +3,37 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>개인카드</title>
-  <link rel="manifest" href="manifest.json" />
+  <title>개인카드 PWA</title>
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
   <div class="app">
-    <header class="header">
-      <h1>📇 개인카드</h1>
-      <div class="header-buttons">
-        <button onclick="addCard()">사람 추가</button>
-        <button onclick="saveBackup()">백업(JSON)</button>
-      </div>
+    <header class="topbar">
+      <h1>개인카드</h1>
     </header>
 
-    <main id="app"></main>
+    <main class="container">
+      <section class="panel">
+        <h2>사람 추가</h2>
+        <form id="personForm">
+          <input type="text" id="name" placeholder="이름" required />
+          <input type="text" id="phone" placeholder="전화번호" />
+          <input type="text" id="tags" placeholder="태그(쉼표로 구분)" />
+          <textarea id="firstNote" placeholder="첫 기록"></textarea>
+          <button type="submit">저장</button>
+        </form>
+      </section>
+
+      <section class="panel">
+        <h2>사람 목록</h2>
+        <div id="personList" class="person-list"></div>
+      </section>
+
+      <section class="panel" id="detailPanel" style="display:none;">
+        <h2>상세 보기</h2>
+        <div id="detailContent"></div>
+      </section>
+    </main>
   </div>
 
   <script src="app.js"></script>
