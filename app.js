@@ -63,6 +63,109 @@ function exportData() {
     alert("백업 실패");
   }
 }
+function normalizeImportedPeople(imported) {
+  return imported
+    .filter((item) => item && typeof item === "object")
+    .map((item) => {
+      const now = formatNow();
+
+      return {
+        id: String(item.id || Date.now() + Math.random()),
+        name: String(item.name || "").trim(),
+        phone: String(item.phone || "").trim(),
+        tags: Array.isArray(item.tags)
+          ? item.tags.map((t) => String(t).trim()).filter(Boolean)
+          : [],
+        notes: Array.isArray(item.notes)
+          ? item.notes
+              .filter((n) => n && typeof n === "object")
+              .map((n) => ({
+                date: String(n.date || now),
+                content: String(n.content || "").trim()
+              }))
+              .filter((n) => n.content)
+          : [],
+        createdAt: String(item.createdAt || now),
+        updatedAt: String(item.updatedAt || now)
+      };
+    })
+    .filter((item) => item.name);
+}
+
+function bindImportFile() {
+  const input = document.getElementById("importFile");
+  if (!input) return;
+
+  input.addEventListener("change", function (e) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+
+    reader.onload = function (event) {
+      try {
+        const text = event.target?.result;
+        const parsed = JSON.parse(text);
+
+        if (!Array.isArray(parsed)) {
+          alert("잘못된 JSON 형식입니다. 배열 형태의 백업 파일이어야 합니다.");
+          return;
+        }
+
+        const importedPeople = normalizeImportedPeople(parsed);
+
+        if (importedPeople.length === 0) {
+          alert("불러올 데이터가 없습니다.");
+          return;
+        }
+
+        const merge = confirm(
+          `가져온 데이터 ${importedPeople.length}건을 불러옵니다.\n\n확인 = 기존 데이터와 병합\n취소 = 기존 데이터를 지우고 새 데이터로 덮어쓰기`
+        );
+
+        if (merge) {
+          const existingIds = new Set(people.map((p) => String(p.id)));
+
+          importedPeople.forEach((item) => {
+            let newItem = { ...item };
+
+            if (existingIds.has(String(newItem.id))) {
+              newItem.id = String(Date.now() + Math.random());
+            }
+
+            people.push(newItem);
+            existingIds.add(String(newItem.id));
+          });
+        } else {
+          people = importedPeople;
+        }
+
+        savePeople();
+        renderList();
+
+        const panel = document.getElementById("detailPanel");
+        const content = document.getElementById("detailContent");
+        if (panel) panel.style.display = "none";
+        if (content) content.innerHTML = "";
+        selectedPersonId = null;
+
+        alert("데이터 불러오기가 완료되었습니다.");
+      } catch (err) {
+        console.error("import 오류:", err);
+        alert("JSON 파일을 읽는 중 오류가 발생했습니다.");
+      } finally {
+        input.value = "";
+      }
+    };
+
+    reader.onerror = function () {
+      alert("파일을 읽지 못했습니다.");
+      input.value = "";
+    };
+
+    reader.readAsText(file, "utf-8");
+  });
+}
 function savePeople() {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(people));
 }
@@ -341,6 +444,7 @@ function registerServiceWorker() {
 // =========================
 function init() {
   bindForm();
+  bindImportFile();
   renderList();
   registerServiceWorker();
 }
