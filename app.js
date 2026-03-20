@@ -5,6 +5,13 @@ let selectedPersonId = null;
 let deleteSelectionMode = false;
 let selectedDeleteIds = new Set();
 
+function showAppScreen() {
+  const landing = document.getElementById("landingScreen");
+  const app = document.getElementById("appShell");
+  if (landing) landing.hidden = true;
+  if (app) app.hidden = false;
+}
+
 function loadPeople() {
   const raw =
     localStorage.getItem(STORAGE_KEY) ||
@@ -289,6 +296,7 @@ function bindDataControls() {
   const cancelFormButton = document.getElementById("cancelFormButton");
   const toggleDeleteModeButton = document.getElementById("toggleDeleteModeButton");
   const deleteSelectedButton = document.getElementById("deleteSelectedButton");
+  const enterAppButton = document.getElementById("enterAppButton");
 
   exportButton?.addEventListener("click", exportData);
   importButton?.addEventListener("click", () => importFile?.click());
@@ -296,6 +304,7 @@ function bindDataControls() {
   cancelFormButton?.addEventListener("click", closeForm);
   toggleDeleteModeButton?.addEventListener("click", toggleDeleteMode);
   deleteSelectedButton?.addEventListener("click", deleteSelectedPeople);
+  enterAppButton?.addEventListener("click", showAppScreen);
 }
 
 function bindImportFile() {
@@ -418,7 +427,10 @@ function showDetail(personId) {
 function createNoteItem(note) {
   return `
     <div class="note-item">
-      <div class="note-date">${escapeHtml(note.date || "-")}</div>
+      <div class="note-head">
+        <div class="note-date">${escapeHtml(note.date || "-")}</div>
+        <button type="button" class="mini-button" data-action="edit-note" data-note-index="${note.index}">수정</button>
+      </div>
       <div class="note-text">${escapeHtml(note.content).replace(/\n/g, "<br>")}</div>
     </div>
   `;
@@ -499,7 +511,12 @@ function renderDetailPanel() {
   const tagsHtml = (person.tags || [])
     .map((tag) => `<span class="tag">${escapeHtml(tag)}</span>`)
     .join("");
-  const notesHtml = (person.notes || []).slice().reverse().map(createNoteItem).join("");
+  const notesHtml = (person.notes || [])
+    .map((note, index) => ({ ...note, index }))
+    .slice()
+    .reverse()
+    .map(createNoteItem)
+    .join("");
 
   content.innerHTML = `
     <div class="detail-hero">
@@ -538,7 +555,48 @@ function renderDetailPanel() {
     renderDetailPanel();
   });
 
+  content.querySelectorAll('[data-action="edit-note"]').forEach((button) => {
+    button.addEventListener("click", () => {
+      editNote(person.id, Number(button.dataset.noteIndex));
+    });
+  });
+
   panel.hidden = false;
+}
+
+function editNote(personId, noteIndex) {
+  const person = people.find((item) => item.id === personId);
+  const note = person?.notes?.[noteIndex];
+  if (!person || !note) return;
+
+  const nextDate = prompt("상담일자 6자리를 입력하세요.", note.rawDate || "");
+  if (nextDate === null) return;
+
+  const formattedDate = formatConsultDate(nextDate);
+  if (!formattedDate) {
+    alert("상담일자 6자리를 올바르게 입력하세요.");
+    return;
+  }
+
+  const nextContent = prompt("상담내용을 수정하세요.", note.content || "");
+  if (nextContent === null) return;
+
+  const trimmedContent = nextContent.trim();
+  if (!trimmedContent) {
+    alert("상담내용을 입력하세요.");
+    return;
+  }
+
+  person.notes[noteIndex] = {
+    rawDate: digitsOnly(nextDate).slice(0, 6),
+    date: formattedDate,
+    content: trimmedContent
+  };
+  person.updatedAt = formatNow();
+
+  savePeople();
+  renderList();
+  renderDetailPanel();
 }
 
 function bindForm() {
