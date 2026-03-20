@@ -12,7 +12,7 @@
   <div class="app">
     <header class="topbar">
       <h1>개인카드</h1>
-      <p class="topbar-copy">로컬에 안전하게 저장하는 개인 연락처 카드</p>
+      <p class="topbar-copy">인적사항과 상담내역을 함께 관리하는 개인카드</p>
     </header>
 
     <main class="container">
@@ -20,26 +20,36 @@
         <h2>데이터 관리</h2>
         <div class="backup-actions">
           <button type="button" id="exportButton">JSON 백업 다운로드</button>
-
           <label class="field-label" for="importMode">가져오기 방식</label>
           <select id="importMode">
             <option value="merge">기존 데이터와 병합</option>
             <option value="replace">기존 데이터를 지우고 덮어쓰기</option>
           </select>
-
           <input type="file" id="importFile" accept=".json,application/json" hidden />
           <button type="button" id="importButton">JSON 불러오기</button>
-          <p class="help-text">주의: localStorage는 기기별로 따로 저장되므로 정기 백업을 권장합니다.</p>
+          <p class="help-text">localStorage는 기기별 저장이므로 중요한 데이터는 자주 백업해 주세요.</p>
         </div>
       </section>
 
       <section class="panel">
         <h2>사람 추가</h2>
         <form id="personForm">
+          <div class="section-title">인적사항</div>
           <input type="text" id="name" placeholder="이름" required />
+          <input type="text" id="gender" placeholder="성별" />
           <input type="text" id="phone" placeholder="전화번호" />
+          <input type="text" id="address" placeholder="주소" />
+          <input type="text" id="birthDate" maxlength="6" placeholder="생년월일 6자리 예: 821003" />
+          <div class="preview-text" id="birthPreview"></div>
+          <input type="text" id="age" placeholder="나이 자동계산" readonly />
+          <input type="text" id="job" placeholder="직업" />
           <input type="text" id="tags" placeholder="태그(쉼표로 구분)" />
-          <textarea id="firstNote" placeholder="첫 기록"></textarea>
+
+          <div class="section-title">상담내역</div>
+          <input type="text" id="firstConsultDate" maxlength="6" placeholder="상담일자 6자리 예: 260320" />
+          <div class="preview-text" id="consultDatePreview"></div>
+          <textarea id="firstNote" placeholder="상담내용"></textarea>
+
           <button type="submit">저장</button>
         </form>
       </section>
