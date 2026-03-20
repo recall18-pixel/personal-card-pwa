@@ -3,176 +3,24 @@ const STORAGE_KEY = "personal_cards_v2";
 let people = loadPeople();
 let selectedPersonId = null;
 
-// =========================
-// 데이터 로드 / 저장
-// =========================
 function loadPeople() {
   const raw = localStorage.getItem(STORAGE_KEY);
   if (!raw) return [];
 
   try {
     const parsed = JSON.parse(raw);
-
-    // 구버전 memo -> notes 변환
-    return parsed.map((person) => {
-      if (!Array.isArray(person.notes)) {
-        person.notes = [];
-      }
-
-      if (person.memo && String(person.memo).trim()) {
-        person.notes.push({
-          date: formatNow(),
-          content: person.memo
-        });
-        delete person.memo;
-      }
-
-      if (!person.createdAt) person.createdAt = formatNow();
-      if (!person.updatedAt) person.updatedAt = formatNow();
-
-      return person;
-    });
-  } catch (e) {
-    console.error("저장 데이터 로드 실패:", e);
+    if (!Array.isArray(parsed)) return [];
+    return normalizeImportedPeople(parsed);
+  } catch (error) {
+    console.error("데이터 로드 실패:", error);
     return [];
   }
 }
-function exportData() {
-  try {
-    const dataStr = JSON.stringify(people, null, 2);
 
-    const blob = new Blob([dataStr], { type: "application/json" });
-    const url = URL.createObjectURL(blob);
-
-    const a = document.createElement("a");
-    const now = new Date();
-
-    const filename = `personal_cards_backup_${now.getFullYear()}-${String(
-      now.getMonth() + 1
-    ).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}.json`;
-
-    a.href = url;
-    a.download = filename;
-    a.click();
-
-    URL.revokeObjectURL(url);
-
-    alert("백업 파일이 다운로드되었습니다.");
-  } catch (e) {
-    console.error(e);
-    alert("백업 실패");
-  }
-}
-function normalizeImportedPeople(imported) {
-  return imported
-    .filter((item) => item && typeof item === "object")
-    .map((item) => {
-      const now = formatNow();
-
-      return {
-        id: String(item.id || Date.now() + Math.random()),
-        name: String(item.name || "").trim(),
-        phone: String(item.phone || "").trim(),
-        tags: Array.isArray(item.tags)
-          ? item.tags.map((t) => String(t).trim()).filter(Boolean)
-          : [],
-        notes: Array.isArray(item.notes)
-          ? item.notes
-              .filter((n) => n && typeof n === "object")
-              .map((n) => ({
-                date: String(n.date || now),
-                content: String(n.content || "").trim()
-              }))
-              .filter((n) => n.content)
-          : [],
-        createdAt: String(item.createdAt || now),
-        updatedAt: String(item.updatedAt || now)
-      };
-    })
-    .filter((item) => item.name);
-}
-
-function bindImportFile() {
-  const input = document.getElementById("importFile");
-  if (!input) return;
-
-  input.addEventListener("change", function (e) {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    const reader = new FileReader();
-
-    reader.onload = function (event) {
-      try {
-        const text = event.target?.result;
-        const parsed = JSON.parse(text);
-
-        if (!Array.isArray(parsed)) {
-          alert("잘못된 JSON 형식입니다. 배열 형태의 백업 파일이어야 합니다.");
-          return;
-        }
-
-        const importedPeople = normalizeImportedPeople(parsed);
-
-        if (importedPeople.length === 0) {
-          alert("불러올 데이터가 없습니다.");
-          return;
-        }
-
-        const merge = confirm(
-          `가져온 데이터 ${importedPeople.length}건을 불러옵니다.\n\n확인 = 기존 데이터와 병합\n취소 = 기존 데이터를 지우고 새 데이터로 덮어쓰기`
-        );
-
-        if (merge) {
-          const existingIds = new Set(people.map((p) => String(p.id)));
-
-          importedPeople.forEach((item) => {
-            let newItem = { ...item };
-
-            if (existingIds.has(String(newItem.id))) {
-              newItem.id = String(Date.now() + Math.random());
-            }
-
-            people.push(newItem);
-            existingIds.add(String(newItem.id));
-          });
-        } else {
-          people = importedPeople;
-        }
-
-        savePeople();
-        renderList();
-
-        const panel = document.getElementById("detailPanel");
-        const content = document.getElementById("detailContent");
-        if (panel) panel.style.display = "none";
-        if (content) content.innerHTML = "";
-        selectedPersonId = null;
-
-        alert("데이터 불러오기가 완료되었습니다.");
-      } catch (err) {
-        console.error("import 오류:", err);
-        alert("JSON 파일을 읽는 중 오류가 발생했습니다.");
-      } finally {
-        input.value = "";
-      }
-    };
-
-    reader.onerror = function () {
-      alert("파일을 읽지 못했습니다.");
-      input.value = "";
-    };
-
-    reader.readAsText(file, "utf-8");
-  });
-}
 function savePeople() {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(people));
 }
 
-// =========================
-// 공통 유틸
-// =========================
 function formatNow() {
   const now = new Date();
   const y = now.getFullYear();
@@ -192,9 +40,162 @@ function escapeHtml(str) {
     .replaceAll("'", "&#039;");
 }
 
-// =========================
-// 목록 렌더링
-// =========================
+function normalizeImportedPeople(imported) {
+  return imported
+    .filter((item) => item && typeof item === "object")
+    .map((item, index) => {
+      const now = formatNow();
+      const notes = Array.isArray(item.notes)
+        ? item.notes
+        : item.memo
+          ? [{ date: item.updatedAt || item.createdAt || now, content: String(item.memo).trim() }]
+          : [];
+
+      return {
+        id: String(item.id || `${Date.now()}_${index}`),
+        name: String(item.name || "").trim(),
+        phone: String(item.phone || "").trim(),
+        tags: Array.isArray(item.tags)
+          ? item.tags.map((tag) => String(tag).trim()).filter(Boolean)
+          : String(item.tags || "")
+              .split(",")
+              .map((tag) => tag.trim())
+              .filter(Boolean),
+        notes: notes
+          .filter((note) => note && typeof note === "object")
+          .map((note) => ({
+            date: String(note.date || now),
+            content: String(note.content || "").trim()
+          }))
+          .filter((note) => note.content),
+        createdAt: String(item.createdAt || now),
+        updatedAt: String(item.updatedAt || item.createdAt || now)
+      };
+    })
+    .filter((person) => person.name);
+}
+
+function exportData() {
+  try {
+    const dataStr = JSON.stringify(people, null, 2);
+    const blob = new Blob([dataStr], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement("a");
+    const now = new Date();
+    const filename = `personal_cards_backup_${now.getFullYear()}-${String(
+      now.getMonth() + 1
+    ).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}.json`;
+
+    anchor.href = url;
+    anchor.download = filename;
+    anchor.click();
+    URL.revokeObjectURL(url);
+    alert("백업 파일을 다운로드했습니다.");
+  } catch (error) {
+    console.error("백업 실패:", error);
+    alert("백업 중 오류가 발생했습니다.");
+  }
+}
+
+function hideDetail() {
+  selectedPersonId = null;
+  const panel = document.getElementById("detailPanel");
+  const content = document.getElementById("detailContent");
+  if (panel) panel.hidden = true;
+  if (content) content.innerHTML = "";
+}
+
+function mergePeople(existingPeople, importedPeople) {
+  const merged = existingPeople.map((person) => ({ ...person }));
+  const existingIds = new Set(merged.map((person) => String(person.id)));
+
+  importedPeople.forEach((person) => {
+    let nextId = String(person.id);
+
+    if (existingIds.has(nextId)) {
+      nextId = `${person.id}_${Date.now()}_${Math.random().toString(16).slice(2, 8)}`;
+    }
+
+    merged.push({
+      ...person,
+      id: nextId
+    });
+    existingIds.add(nextId);
+  });
+
+  return merged;
+}
+
+function bindDataControls() {
+  const exportButton = document.getElementById("exportButton");
+  const importButton = document.getElementById("importButton");
+  const importFile = document.getElementById("importFile");
+
+  if (exportButton) {
+    exportButton.addEventListener("click", exportData);
+  }
+
+  if (importButton && importFile) {
+    importButton.addEventListener("click", () => importFile.click());
+  }
+}
+
+function bindImportFile() {
+  const input = document.getElementById("importFile");
+  const importMode = document.getElementById("importMode");
+  if (!input || !importMode) return;
+
+  input.addEventListener("change", (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+
+    reader.onload = (loadEvent) => {
+      try {
+        const text = String(loadEvent.target?.result || "");
+        const parsed = JSON.parse(text);
+
+        if (!Array.isArray(parsed)) {
+          alert("올바른 JSON 배열 백업 파일만 불러올 수 있습니다.");
+          return;
+        }
+
+        const importedPeople = normalizeImportedPeople(parsed);
+        if (importedPeople.length === 0) {
+          alert("불러올 데이터가 없습니다.");
+          return;
+        }
+
+        const shouldReplace = importMode.value === "replace";
+        people = shouldReplace ? importedPeople : mergePeople(people, importedPeople);
+
+        savePeople();
+        renderList();
+        hideDetail();
+
+        alert(
+          shouldReplace
+            ? `${importedPeople.length}개의 카드를 덮어쓰기 방식으로 복원했습니다.`
+            : `${importedPeople.length}개의 카드를 기존 데이터와 병합했습니다.`
+        );
+      } catch (error) {
+        console.error("가져오기 실패:", error);
+        alert("JSON 파일을 읽는 중 오류가 발생했습니다.");
+      } finally {
+        input.value = "";
+      }
+    };
+
+    reader.onerror = () => {
+      alert("파일을 읽지 못했습니다.");
+      input.value = "";
+    };
+
+    reader.readAsText(file, "utf-8");
+  });
+}
+
 function renderList() {
   const listEl = document.getElementById("personList");
   if (!listEl) return;
@@ -212,33 +213,40 @@ function renderList() {
     .forEach((person) => {
       const card = document.createElement("div");
       card.className = "person-card";
+
+      const tagsHtml = (person.tags || [])
+        .map((tag) => `<span class="tag">${escapeHtml(tag)}</span>`)
+        .join("");
+
       card.innerHTML = `
         <div class="person-card-main">
           <strong>${escapeHtml(person.name)}</strong>
-          <div class="sub">${escapeHtml(person.phone || "")}</div>
-          <div class="tags">
-            ${(person.tags || [])
-              .map((tag) => `<span class="tag">${escapeHtml(tag)}</span>`)
-              .join("")}
-          </div>
-          <div class="sub">기록 ${person.notes?.length || 0}개</div>
-          <div class="sub">수정일: ${escapeHtml(person.updatedAt)}</div>
+          <div class="sub">${escapeHtml(person.phone || "전화번호 없음")}</div>
+          <div class="tags">${tagsHtml}</div>
+          <div class="sub">기록 ${(person.notes || []).length}개</div>
+          <div class="sub">수정일 ${escapeHtml(person.updatedAt)}</div>
         </div>
         <div class="person-card-actions">
-          <button type="button" onclick="showDetail('${person.id}')">보기</button>
-          <button type="button" onclick="deletePerson('${person.id}')">삭제</button>
+          <button type="button" data-action="detail">보기</button>
+          <button type="button" data-action="delete">삭제</button>
         </div>
       `;
+
+      card.querySelector('[data-action="detail"]')?.addEventListener("click", () => {
+        showDetail(person.id);
+      });
+
+      card.querySelector('[data-action="delete"]')?.addEventListener("click", () => {
+        deletePerson(person.id);
+      });
+
       listEl.appendChild(card);
     });
 }
 
-// =========================
-// 상세 보기
-// =========================
 function showDetail(personId) {
   selectedPersonId = personId;
-  const person = people.find((p) => p.id === personId);
+  const person = people.find((item) => item.id === personId);
   if (!person) return;
 
   const panel = document.getElementById("detailPanel");
@@ -248,31 +256,31 @@ function showDetail(personId) {
   const notesHtml = (person.notes || [])
     .slice()
     .reverse()
-    .map((note) => {
-      return `
+    .map(
+      (note) => `
         <div class="note-item">
           <div class="note-date">${escapeHtml(note.date)}</div>
           <div class="note-text">${escapeHtml(note.content).replace(/\n/g, "<br>")}</div>
         </div>
-      `;
-    })
+      `
+    )
     .join("");
 
   content.innerHTML = `
     <div class="detail-header">
       <h3>${escapeHtml(person.name)}</h3>
       <p>전화번호: ${escapeHtml(person.phone || "-")}</p>
-      <p>태그: ${(person.tags || []).map((t) => `#${escapeHtml(t)}`).join(" ") || "-"}</p>
-      <p>생성일: ${escapeHtml(person.createdAt)}</p>
-      <p>수정일: ${escapeHtml(person.updatedAt)}</p>
+      <p>태그: ${(person.tags || []).map((tag) => `#${escapeHtml(tag)}`).join(" ") || "-"}</p>
+      <p>생성일 ${escapeHtml(person.createdAt)}</p>
+      <p>수정일 ${escapeHtml(person.updatedAt)}</p>
     </div>
 
     <hr>
 
     <div class="add-note-box">
-      <h4>내용 추가</h4>
+      <h4>기록 추가</h4>
       <textarea id="newNoteText" placeholder="새로운 기록을 입력하세요"></textarea>
-      <button type="button" onclick="addNote()">추가</button>
+      <button type="button" id="addNoteButton">추가</button>
     </div>
 
     <hr>
@@ -283,12 +291,10 @@ function showDetail(personId) {
     </div>
   `;
 
-  panel.style.display = "block";
+  content.querySelector("#addNoteButton")?.addEventListener("click", addNote);
+  panel.hidden = false;
 }
 
-// =========================
-// 기록 추가
-// =========================
 function addNote() {
   if (!selectedPersonId) return;
 
@@ -301,59 +307,44 @@ function addNote() {
     return;
   }
 
-  const person = people.find((p) => p.id === selectedPersonId);
+  const person = people.find((item) => item.id === selectedPersonId);
   if (!person) return;
 
   if (!Array.isArray(person.notes)) {
     person.notes = [];
   }
 
-  person.notes.push({
-    date: formatNow(),
-    content: text
-  });
-
-  person.updatedAt = formatNow();
+  const now = formatNow();
+  person.notes.push({ date: now, content: text });
+  person.updatedAt = now;
 
   savePeople();
   renderList();
   showDetail(selectedPersonId);
 }
 
-// =========================
-// 사람 삭제
-// =========================
 function deletePerson(personId) {
-  const person = people.find((p) => p.id === personId);
+  const person = people.find((item) => item.id === personId);
   if (!person) return;
 
   const ok = confirm(`${person.name} 카드를 삭제할까요?`);
   if (!ok) return;
 
-  people = people.filter((p) => p.id !== personId);
+  people = people.filter((item) => item.id !== personId);
   savePeople();
   renderList();
 
   if (selectedPersonId === personId) {
-    selectedPersonId = null;
-
-    const panel = document.getElementById("detailPanel");
-    const content = document.getElementById("detailContent");
-
-    if (panel) panel.style.display = "none";
-    if (content) content.innerHTML = "";
+    hideDetail();
   }
 }
 
-// =========================
-// 사람 등록
-// =========================
 function bindForm() {
   const form = document.getElementById("personForm");
   if (!form) return;
 
-  form.addEventListener("submit", function (e) {
-    e.preventDefault();
+  form.addEventListener("submit", function (event) {
+    event.preventDefault();
 
     const name = document.getElementById("name")?.value.trim() || "";
     const phone = document.getElementById("phone")?.value.trim() || "";
@@ -365,63 +356,46 @@ function bindForm() {
       return;
     }
 
-    const tags = tagsRaw
-      ? tagsRaw.split(",").map((t) => t.trim()).filter(Boolean)
-      : [];
-
     const now = formatNow();
-
     const person = {
       id: String(Date.now()),
       name,
       phone,
-      tags,
-      notes: [],
+      tags: tagsRaw
+        ? tagsRaw.split(",").map((tag) => tag.trim()).filter(Boolean)
+        : [],
+      notes: firstNote ? [{ date: now, content: firstNote }] : [],
       createdAt: now,
       updatedAt: now
     };
 
-    if (firstNote) {
-      person.notes.push({
-        date: now,
-        content: firstNote
-      });
-    }
-
     people.push(person);
     savePeople();
     renderList();
-
     this.reset();
     showDetail(person.id);
   });
 }
 
-// =========================
-// 서비스워커 등록
-// =========================
 function registerServiceWorker() {
   if (!("serviceWorker" in navigator)) return;
 
   window.addEventListener("load", async () => {
     try {
       const registration = await navigator.serviceWorker.register("./service-worker.js");
-      console.log("Service Worker 등록 성공:", registration.scope);
+      await registration.update();
 
-      // 페이지 로드 시 새 버전 체크
-      registration.update();
+      if (registration.waiting) {
+        registration.waiting.postMessage({ type: "SKIP_WAITING" });
+      }
 
-      // 새 서비스워커 감지
       registration.addEventListener("updatefound", () => {
-        const newWorker = registration.installing;
-        if (!newWorker) return;
+        const nextWorker = registration.installing;
+        if (!nextWorker) return;
 
-        newWorker.addEventListener("statechange", () => {
-          if (
-            newWorker.state === "installed" &&
-            navigator.serviceWorker.controller
-          ) {
-            console.log("새 버전 서비스워커가 설치되었습니다.");
+        nextWorker.addEventListener("statechange", () => {
+          if (nextWorker.state === "installed" && navigator.serviceWorker.controller) {
+            nextWorker.postMessage({ type: "SKIP_WAITING" });
           }
         });
       });
@@ -430,7 +404,6 @@ function registerServiceWorker() {
     }
   });
 
-  // 새 서비스워커가 현재 페이지를 제어하면 자동 새로고침
   let refreshing = false;
   navigator.serviceWorker.addEventListener("controllerchange", () => {
     if (refreshing) return;
@@ -439,12 +412,10 @@ function registerServiceWorker() {
   });
 }
 
-// =========================
-// 초기 실행
-// =========================
 function init() {
-  bindForm();
+  bindDataControls();
   bindImportFile();
+  bindForm();
   renderList();
   registerServiceWorker();
 }

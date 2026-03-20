@@ -1,5 +1,6 @@
-const CACHE_VERSION = "v3";
-const STATIC_CACHE = `static-${CACHE_VERSION}`;
+const CACHE_VERSION = "v4";
+const STATIC_CACHE = `personal-cards-static-${CACHE_VERSION}`;
+const HTML_CACHE = `personal-cards-html-${CACHE_VERSION}`;
 
 const APP_SHELL = [
   "./",
@@ -9,7 +10,6 @@ const APP_SHELL = [
   "./manifest.json"
 ];
 
-// 설치
 self.addEventListener("install", (event) => {
   self.skipWaiting();
   event.waitUntil(
@@ -17,16 +17,16 @@ self.addEventListener("install", (event) => {
   );
 });
 
-// 활성화
 self.addEventListener("activate", (event) => {
   event.waitUntil(
     (async () => {
       const keys = await caches.keys();
       await Promise.all(
         keys.map((key) => {
-          if (key !== STATIC_CACHE) {
+          if (key !== STATIC_CACHE && key !== HTML_CACHE) {
             return caches.delete(key);
           }
+          return Promise.resolve();
         })
       );
       await self.clients.claim();
@@ -34,51 +34,57 @@ self.addEventListener("activate", (event) => {
   );
 });
 
-// fetch 처리
+self.addEventListener("message", (event) => {
+  if (event.data?.type === "SKIP_WAITING") {
+    self.skipWaiting();
+  }
+});
+
 self.addEventListener("fetch", (event) => {
-  const req = event.request;
+  const request = event.request;
+  if (request.method !== "GET") return;
 
-  if (req.method !== "GET") return;
+  const url = new URL(request.url);
+  if (url.origin !== self.location.origin) return;
 
-  const url = new URL(req.url);
+  const accept = request.headers.get("accept") || "";
+  const isHtmlRequest = request.mode === "navigate" || accept.includes("text/html");
 
-  if (url.origin !== location.origin) return;
-
-  if (
-    req.mode === "navigate" ||
-    (req.headers.get("accept") || "").includes("text/html")
-  ) {
-    event.respondWith(networkFirst(req));
+  if (isHtmlRequest) {
+    event.respondWith(networkFirstHtml(request));
     return;
   }
 
-  event.respondWith(staleWhileRevalidate(req));
+  event.respondWith(staleWhileRevalidateAsset(request));
 });
 
-async function networkFirst(request) {
+async function networkFirstHtml(request) {
+  const cache = await caches.open(HTML_CACHE);
+
   try {
     const fresh = await fetch(request, { cache: "no-store" });
-    const cache = await caches.open(STATIC_CACHE);
-    cache.put(request, fresh.clone());
+    if (fresh.ok) {
+      cache.put(request, fresh.clone());
+    }
     return fresh;
   } catch (error) {
-    const cached = await caches.match(request);
+    const cached = await cache.match(request);
     return cached || caches.match("./index.html");
   }
 }
 
-async function staleWhileRevalidate(request) {
+async function staleWhileRevalidateAsset(request) {
   const cache = await caches.open(STATIC_CACHE);
   const cached = await cache.match(request);
 
   const networkPromise = fetch(request)
     .then((response) => {
-      if (response && response.status === 200) {
+      if (response.ok) {
         cache.put(request, response.clone());
       }
       return response;
     })
     .catch(() => null);
 
-  return cached || networkPromise;
+  return cached || networkPromise || fetch(request);
 }
