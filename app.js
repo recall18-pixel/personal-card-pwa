@@ -5,13 +5,6 @@ let selectedPersonId = null;
 let deleteSelectionMode = false;
 let selectedDeleteIds = new Set();
 
-function showAppScreen() {
-  const landing = document.getElementById("landingScreen");
-  const app = document.getElementById("appShell");
-  if (landing) landing.hidden = true;
-  if (app) app.hidden = false;
-}
-
 function loadPeople() {
   const raw =
     localStorage.getItem(STORAGE_KEY) ||
@@ -296,7 +289,6 @@ function bindDataControls() {
   const cancelFormButton = document.getElementById("cancelFormButton");
   const toggleDeleteModeButton = document.getElementById("toggleDeleteModeButton");
   const deleteSelectedButton = document.getElementById("deleteSelectedButton");
-  const enterAppButton = document.getElementById("enterAppButton");
 
   exportButton?.addEventListener("click", exportData);
   importButton?.addEventListener("click", () => importFile?.click());
@@ -304,7 +296,6 @@ function bindDataControls() {
   cancelFormButton?.addEventListener("click", closeForm);
   toggleDeleteModeButton?.addEventListener("click", toggleDeleteMode);
   deleteSelectedButton?.addEventListener("click", deleteSelectedPeople);
-  enterAppButton?.addEventListener("click", showAppScreen);
 }
 
 function bindImportFile() {

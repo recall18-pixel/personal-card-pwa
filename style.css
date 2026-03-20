@@ -64,6 +64,16 @@ body {
   margin-top: 24px;
 }
 
+.landing-link {
+  display: inline-block;
+  margin-top: 24px;
+  padding: 12px 20px;
+  border-radius: 12px;
+  background: var(--accent);
+  color: #fff;
+  text-decoration: none;
+}
+
 .hero {
   display: flex;
   justify-content: space-between;
@@ -80,6 +90,14 @@ body {
 .topbar-copy {
   margin: 8px 0 0;
   color: var(--muted);
+  font-size: 14px;
+}
+
+.back-link {
+  display: inline-block;
+  margin-bottom: 10px;
+  color: var(--muted);
+  text-decoration: none;
   font-size: 14px;
 }
 
