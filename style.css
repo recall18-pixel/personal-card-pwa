@@ -8,6 +8,7 @@
   --line: #e7dfd3;
   --accent: #1f2937;
   --accent-soft: #dfe7ef;
+  --panel-bg: rgba(255, 253, 248, 0.95);
 }
 
 body {
@@ -26,6 +27,10 @@ body {
 }
 
 .topbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
   margin-bottom: 18px;
 }
 
@@ -46,7 +51,7 @@ body {
 }
 
 .panel {
-  background: rgba(255, 253, 248, 0.95);
+  background: var(--panel-bg);
   border: 1px solid rgba(231, 223, 211, 0.9);
   border-radius: 18px;
   padding: 16px;
@@ -61,6 +66,19 @@ body {
   margin-top: 0;
 }
 
+.panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.panel-count {
+  color: var(--muted);
+  font-size: 14px;
+}
+
 .section-title {
   font-size: 14px;
   font-weight: 700;
@@ -72,6 +90,12 @@ body {
 form,
 .add-note-box {
   display: grid;
+  gap: 10px;
+}
+
+.form-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
   gap: 10px;
 }
 
@@ -138,6 +162,15 @@ button {
 button:hover {
   transform: translateY(-1px);
   opacity: 0.95;
+}
+
+.secondary-button {
+  background: #d8dde4;
+  color: var(--text);
+}
+
+.primary-action {
+  max-width: 132px;
 }
 
 .person-list {
@@ -209,12 +242,21 @@ button:hover {
     padding: 16px 12px 32px;
   }
 
+  .topbar {
+    flex-direction: column;
+  }
+
+  .primary-action {
+    max-width: none;
+  }
+
   .person-card {
     flex-direction: column;
   }
 
   .person-card-actions,
-  .detail-grid {
+  .detail-grid,
+  .form-actions {
     width: 100%;
     grid-template-columns: repeat(2, 1fr);
   }

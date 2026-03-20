@@ -1,10 +1,14 @@
-const STORAGE_KEY = "personal_cards_v3";
+const STORAGE_KEY = "personal_cards_v4";
 
 let people = loadPeople();
 let selectedPersonId = null;
 
 function loadPeople() {
-  const raw = localStorage.getItem(STORAGE_KEY) || localStorage.getItem("personal_cards_v2");
+  const raw =
+    localStorage.getItem(STORAGE_KEY) ||
+    localStorage.getItem("personal_cards_v3") ||
+    localStorage.getItem("personal_cards_v2");
+
   if (!raw) return [];
 
   try {
@@ -23,15 +27,16 @@ function savePeople() {
 
 function formatNow() {
   const now = new Date();
-  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(
-    now.getDate()
-  ).padStart(2, "0")} ${String(now.getHours()).padStart(2, "0")}:${String(
-    now.getMinutes()
-  ).padStart(2, "0")}`;
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, "0");
+  const day = String(now.getDate()).padStart(2, "0");
+  const hour = String(now.getHours()).padStart(2, "0");
+  const minute = String(now.getMinutes()).padStart(2, "0");
+  return `${year}-${month}-${day} ${hour}:${minute}`;
 }
 
-function escapeHtml(str) {
-  return String(str)
+function escapeHtml(value) {
+  return String(value)
     .replaceAll("&", "&amp;")
     .replaceAll("<", "&lt;")
     .replaceAll(">", "&gt;")
@@ -51,19 +56,16 @@ function resolveFourDigitYear(twoDigitYear) {
 }
 
 function parseBirthDate(value) {
-  const digits = digitsOnly(value);
+  const digits = digitsOnly(value).slice(0, 6);
   if (digits.length !== 6) return null;
 
-  const yy = digits.slice(0, 2);
-  const mm = digits.slice(2, 4);
-  const dd = digits.slice(4, 6);
-  const fullYear = resolveFourDigitYear(yy);
-  const month = Number(mm);
-  const day = Number(dd);
-  const date = new Date(fullYear, month - 1, day);
+  const year = resolveFourDigitYear(digits.slice(0, 2));
+  const month = Number(digits.slice(2, 4));
+  const day = Number(digits.slice(4, 6));
+  const date = new Date(year, month - 1, day);
 
   if (
-    date.getFullYear() !== fullYear ||
+    date.getFullYear() !== year ||
     date.getMonth() !== month - 1 ||
     date.getDate() !== day
   ) {
@@ -72,28 +74,17 @@ function parseBirthDate(value) {
 
   return {
     raw: digits,
-    year: fullYear,
+    year,
     month,
     day,
-    display: `${fullYear}년 ${String(month).padStart(2, "0")}월 ${String(day).padStart(2, "0")}일`
+    display: `${year}년 ${String(month).padStart(2, "0")}월 ${String(day).padStart(2, "0")}일`
   };
 }
 
-function calculateAgeFromBirth(value) {
+function calculateKoreanAge(value) {
   const parsed = parseBirthDate(value);
   if (!parsed) return "";
-
-  const today = new Date();
-  let age = today.getFullYear() - parsed.year;
-  const birthdayPassed =
-    today.getMonth() + 1 > parsed.month ||
-    (today.getMonth() + 1 === parsed.month && today.getDate() >= parsed.day);
-
-  if (!birthdayPassed) {
-    age -= 1;
-  }
-
-  return age >= 0 ? String(age) : "";
+  return String(new Date().getFullYear() - parsed.year + 1);
 }
 
 function formatBirthPreview(value) {
@@ -102,20 +93,23 @@ function formatBirthPreview(value) {
 }
 
 function formatConsultDate(value) {
-  const digits = digitsOnly(value);
+  const digits = digitsOnly(value).slice(0, 6);
   if (digits.length !== 6) return "";
 
-  const yy = digits.slice(0, 2);
-  const mm = digits.slice(2, 4);
-  const dd = digits.slice(4, 6);
-  const month = Number(mm);
-  const day = Number(dd);
+  const year = Number(`20${digits.slice(0, 2)}`);
+  const month = Number(digits.slice(2, 4));
+  const day = Number(digits.slice(4, 6));
+  const date = new Date(year, month - 1, day);
 
-  if (month < 1 || month > 12 || day < 1 || day > 31) {
+  if (
+    date.getFullYear() !== year ||
+    date.getMonth() !== month - 1 ||
+    date.getDate() !== day
+  ) {
     return "";
   }
 
-  return `${yy}년 ${mm}월 ${dd}일`;
+  return `${digits.slice(0, 2)}년 ${digits.slice(2, 4)}월 ${digits.slice(4, 6)}일`;
 }
 
 function normalizeNote(note, fallbackDate) {
@@ -124,13 +118,12 @@ function normalizeNote(note, fallbackDate) {
   const content = String(note.content || "").trim();
   if (!content) return null;
 
-  const rawDate = String(note.rawDate || "").trim();
-  const formattedDate =
-    String(note.date || "").trim() || formatConsultDate(rawDate) || fallbackDate || formatNow();
+  const rawDate = digitsOnly(note.rawDate || "");
+  const displayDate = String(note.date || "").trim() || formatConsultDate(rawDate) || fallbackDate;
 
   return {
     rawDate,
-    date: formattedDate,
+    date: displayDate,
     content
   };
 }
@@ -146,7 +139,6 @@ function normalizeImportedPeople(imported) {
           ? [{ date: item.updatedAt || item.createdAt || now, content: String(item.memo).trim() }]
           : [];
 
-      const birthRaw = digitsOnly(item.birthDate || item.birthRaw || "");
       const normalizedNotes = fallbackNotes
         .map((note) => normalizeNote(note, now))
         .filter(Boolean);
@@ -157,7 +149,7 @@ function normalizeImportedPeople(imported) {
         gender: String(item.gender || "").trim(),
         phone: String(item.phone || "").trim(),
         address: String(item.address || "").trim(),
-        birthDate: birthRaw,
+        birthDate: digitsOnly(item.birthDate || item.birthRaw || "").slice(0, 6),
         job: String(item.job || "").trim(),
         tags: Array.isArray(item.tags)
           ? item.tags.map((tag) => String(tag).trim()).filter(Boolean)
@@ -195,22 +187,14 @@ function exportData() {
   }
 }
 
-function hideDetail() {
-  selectedPersonId = null;
-  const panel = document.getElementById("detailPanel");
-  const content = document.getElementById("detailContent");
-  if (panel) panel.hidden = true;
-  if (content) content.innerHTML = "";
-}
-
 function mergePeople(existingPeople, importedPeople) {
   const merged = existingPeople.map((person) => ({ ...person }));
-  const existingIds = new Set(merged.map((person) => String(person.id)));
+  const existingIds = new Set(merged.map((person) => person.id));
 
   importedPeople.forEach((person) => {
     let nextId = String(person.id);
     if (existingIds.has(nextId)) {
-      nextId = `${person.id}_${Date.now()}_${Math.random().toString(16).slice(2, 8)}`;
+      nextId = `${nextId}_${Date.now()}_${Math.random().toString(16).slice(2, 8)}`;
     }
 
     merged.push({ ...person, id: nextId });
@@ -220,13 +204,50 @@ function mergePeople(existingPeople, importedPeople) {
   return merged;
 }
 
+function hideDetail() {
+  selectedPersonId = null;
+  const detailPanel = document.getElementById("detailPanel");
+  const detailContent = document.getElementById("detailContent");
+  if (detailPanel) detailPanel.hidden = true;
+  if (detailContent) detailContent.innerHTML = "";
+}
+
+function openForm() {
+  const formPanel = document.getElementById("formPanel");
+  const addButton = document.getElementById("toggleFormButton");
+  if (formPanel) formPanel.hidden = false;
+  if (addButton) addButton.textContent = "입력창 닫기";
+  document.getElementById("name")?.focus();
+}
+
+function closeForm() {
+  const formPanel = document.getElementById("formPanel");
+  const addButton = document.getElementById("toggleFormButton");
+  if (formPanel) formPanel.hidden = true;
+  if (addButton) addButton.textContent = "고객추가";
+}
+
+function toggleForm() {
+  const formPanel = document.getElementById("formPanel");
+  if (!formPanel) return;
+  if (formPanel.hidden) {
+    openForm();
+  } else {
+    closeForm();
+  }
+}
+
 function bindDataControls() {
   const exportButton = document.getElementById("exportButton");
   const importButton = document.getElementById("importButton");
   const importFile = document.getElementById("importFile");
+  const toggleFormButton = document.getElementById("toggleFormButton");
+  const cancelFormButton = document.getElementById("cancelFormButton");
 
   exportButton?.addEventListener("click", exportData);
   importButton?.addEventListener("click", () => importFile?.click());
+  toggleFormButton?.addEventListener("click", toggleForm);
+  cancelFormButton?.addEventListener("click", closeForm);
 }
 
 function bindImportFile() {
@@ -291,8 +312,9 @@ function bindBirthDatePreview() {
   const updatePreview = () => {
     const raw = digitsOnly(birthInput.value).slice(0, 6);
     birthInput.value = raw;
-    ageInput.value = calculateAgeFromBirth(raw);
-    birthPreview.textContent = raw.length === 6 ? formatBirthPreview(raw) || "유효한 생년월일이 아닙니다." : "";
+    ageInput.value = calculateKoreanAge(raw);
+    birthPreview.textContent =
+      raw.length === 6 ? formatBirthPreview(raw) || "유효한 생년월일이 아닙니다." : "";
   };
 
   birthInput.addEventListener("input", updatePreview);
@@ -315,14 +337,29 @@ function bindConsultDatePreview() {
   updatePreview();
 }
 
+function bindFormKeyboard() {
+  const form = document.getElementById("personForm");
+  if (!form) return;
+
+  form.addEventListener("keydown", (event) => {
+    if (event.key === "Enter" && event.target.tagName !== "TEXTAREA") {
+      event.preventDefault();
+    }
+  });
+}
+
 function renderList() {
   const listEl = document.getElementById("personList");
+  const countEl = document.getElementById("personCount");
   if (!listEl) return;
 
   listEl.innerHTML = "";
+  if (countEl) {
+    countEl.textContent = `총 ${people.length}명`;
+  }
 
   if (people.length === 0) {
-    listEl.innerHTML = `<p class="empty">등록된 사람이 없습니다.</p>`;
+    listEl.innerHTML = `<p class="empty">등록된 사람이 없습니다. 고객추가 버튼으로 첫 카드를 만들어보세요.</p>`;
     return;
   }
 
@@ -331,23 +368,23 @@ function renderList() {
     .sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt))
     .forEach((person) => {
       const card = document.createElement("div");
-      card.className = "person-card";
-
-      const age = calculateAgeFromBirth(person.birthDate);
-      const birth = formatBirthPreview(person.birthDate);
+      const koreanAge = calculateKoreanAge(person.birthDate);
+      const birthLabel = formatBirthPreview(person.birthDate);
+      const consultCount = (person.notes || []).length;
       const tagsHtml = (person.tags || [])
         .map((tag) => `<span class="tag">${escapeHtml(tag)}</span>`)
         .join("");
 
+      card.className = "person-card";
       card.innerHTML = `
         <div class="person-card-main">
           <strong>${escapeHtml(person.name)}</strong>
-          <div class="sub">${escapeHtml(person.gender || "-")} · ${escapeHtml(age ? `${age}세` : "-")}</div>
+          <div class="sub">${escapeHtml(person.gender || "-")} · ${escapeHtml(koreanAge ? `${koreanAge}세` : "-")}</div>
           <div class="sub">${escapeHtml(person.phone || "전화번호 없음")}</div>
           <div class="sub">${escapeHtml(person.job || "직업 미입력")}</div>
-          <div class="sub">${escapeHtml(birth || "생년월일 미입력")}</div>
+          <div class="sub">${escapeHtml(birthLabel || "생년월일 미입력")}</div>
           <div class="tags">${tagsHtml}</div>
-          <div class="sub">상담내역 ${(person.notes || []).length}건</div>
+          <div class="sub">상담내역 ${consultCount}건</div>
         </div>
         <div class="person-card-actions">
           <button type="button" data-action="detail">${selectedPersonId === person.id ? "닫기" : "보기"}</button>
@@ -356,12 +393,6 @@ function renderList() {
       `;
 
       card.querySelector('[data-action="detail"]')?.addEventListener("click", () => {
-        if (selectedPersonId === person.id) {
-          hideDetail();
-          renderList();
-          return;
-        }
-
         showDetail(person.id);
         renderList();
       });
@@ -375,22 +406,21 @@ function renderList() {
 }
 
 function showDetail(personId) {
-  const person = people.find((item) => item.id === personId);
-  if (!person) return;
-
   if (selectedPersonId === personId) {
     hideDetail();
-    renderList();
     return;
   }
 
+  const person = people.find((item) => item.id === personId);
+  if (!person) return;
+
   selectedPersonId = personId;
 
-  const panel = document.getElementById("detailPanel");
-  const content = document.getElementById("detailContent");
-  if (!panel || !content) return;
+  const detailPanel = document.getElementById("detailPanel");
+  const detailContent = document.getElementById("detailContent");
+  if (!detailPanel || !detailContent) return;
 
-  const age = calculateAgeFromBirth(person.birthDate);
+  const koreanAge = calculateKoreanAge(person.birthDate);
   const notesHtml = (person.notes || [])
     .slice()
     .reverse()
@@ -404,14 +434,14 @@ function showDetail(personId) {
     )
     .join("");
 
-  content.innerHTML = `
+  detailContent.innerHTML = `
     <div class="detail-header">
       <h3>${escapeHtml(person.name)}</h3>
       <div class="detail-grid">
         <div><span class="detail-label">성별</span><strong>${escapeHtml(person.gender || "-")}</strong></div>
         <div><span class="detail-label">전화번호</span><strong>${escapeHtml(person.phone || "-")}</strong></div>
         <div><span class="detail-label">생년월일</span><strong>${escapeHtml(formatBirthPreview(person.birthDate) || "-")}</strong></div>
-        <div><span class="detail-label">나이</span><strong>${escapeHtml(age ? `${age}세` : "-")}</strong></div>
+        <div><span class="detail-label">나이</span><strong>${escapeHtml(koreanAge ? `${koreanAge}세` : "-")}</strong></div>
         <div><span class="detail-label">직업</span><strong>${escapeHtml(person.job || "-")}</strong></div>
         <div><span class="detail-label">주소</span><strong>${escapeHtml(person.address || "-")}</strong></div>
       </div>
@@ -420,7 +450,7 @@ function showDetail(personId) {
       <p>수정일 ${escapeHtml(person.updatedAt)}</p>
     </div>
 
-    <hr>
+    <hr />
 
     <div class="add-note-box">
       <h4>상담내역 추가</h4>
@@ -430,7 +460,7 @@ function showDetail(personId) {
       <button type="button" id="addNoteButton">상담내역 저장</button>
     </div>
 
-    <hr>
+    <hr />
 
     <div class="notes-section">
       <h4>상담내역</h4>
@@ -438,8 +468,11 @@ function showDetail(personId) {
     </div>
   `;
 
-  const consultInput = content.querySelector("#newConsultDate");
-  const consultPreview = content.querySelector("#newConsultDatePreview");
+  detailPanel.hidden = false;
+
+  const consultInput = detailContent.querySelector("#newConsultDate");
+  const consultPreview = detailContent.querySelector("#newConsultDatePreview");
+
   consultInput?.addEventListener("input", () => {
     const raw = digitsOnly(consultInput.value).slice(0, 6);
     consultInput.value = raw;
@@ -447,8 +480,7 @@ function showDetail(personId) {
       raw.length === 6 ? formatConsultDate(raw) || "유효한 상담일자가 아닙니다." : "";
   });
 
-  content.querySelector("#addNoteButton")?.addEventListener("click", addNote);
-  panel.hidden = false;
+  detailContent.querySelector("#addNoteButton")?.addEventListener("click", addNote);
 }
 
 function addNote() {
@@ -462,7 +494,7 @@ function addNote() {
   const rawDate = digitsOnly(consultDateInput.value).slice(0, 6);
   const formattedDate = formatConsultDate(rawDate);
 
-  if (!rawDate || !formattedDate) {
+  if (!formattedDate) {
     alert("상담일자 6자리를 올바르게 입력하세요.");
     return;
   }
@@ -475,10 +507,7 @@ function addNote() {
   const person = people.find((item) => item.id === selectedPersonId);
   if (!person) return;
 
-  if (!Array.isArray(person.notes)) {
-    person.notes = [];
-  }
-
+  person.notes = Array.isArray(person.notes) ? person.notes : [];
   person.notes.push({
     rawDate,
     date: formattedDate,
@@ -487,17 +516,16 @@ function addNote() {
   person.updatedAt = formatNow();
 
   savePeople();
+  selectedPersonId = null;
+  showDetail(person.id);
   renderList();
-  showDetail(selectedPersonId);
 }
 
 function deletePerson(personId) {
   const person = people.find((item) => item.id === personId);
   if (!person) return;
 
-  if (!confirm(`${person.name} 카드를 삭제할까요?`)) {
-    return;
-  }
+  if (!confirm(`${person.name} 카드를 삭제할까요?`)) return;
 
   people = people.filter((item) => item.id !== personId);
   savePeople();
@@ -573,12 +601,13 @@ function bindForm() {
 
     const ageInput = document.getElementById("age");
     const birthPreview = document.getElementById("birthPreview");
-    const consultPreview = document.getElementById("consultDatePreview");
+    const consultDatePreview = document.getElementById("consultDatePreview");
     if (ageInput) ageInput.value = "";
     if (birthPreview) birthPreview.textContent = "";
-    if (consultPreview) consultPreview.textContent = "";
+    if (consultDatePreview) consultDatePreview.textContent = "";
 
-    showDetail(person.id);
+    closeForm();
+    hideDetail();
   });
 }
 
@@ -622,8 +651,10 @@ function init() {
   bindImportFile();
   bindBirthDatePreview();
   bindConsultDatePreview();
+  bindFormKeyboard();
   bindForm();
   renderList();
+  closeForm();
   registerServiceWorker();
 }
 

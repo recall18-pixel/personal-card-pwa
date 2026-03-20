@@ -11,8 +11,11 @@
 <body>
   <div class="app">
     <header class="topbar">
-      <h1>개인카드</h1>
-      <p class="topbar-copy">인적사항과 상담내역을 함께 관리하는 개인카드</p>
+      <div>
+        <h1>개인카드</h1>
+        <p class="topbar-copy">인적사항과 상담내역을 함께 관리하는 개인카드</p>
+      </div>
+      <button type="button" id="toggleFormButton" class="primary-action">고객추가</button>
     </header>
 
     <main class="container">
@@ -32,31 +35,41 @@
       </section>
 
       <section class="panel">
-        <h2>사람 추가</h2>
+        <div class="panel-header">
+          <h2>고객 목록</h2>
+          <span class="panel-count" id="personCount"></span>
+        </div>
+        <div id="personList" class="person-list"></div>
+      </section>
+
+      <section class="panel" id="formPanel" hidden>
+        <h2>고객 추가</h2>
         <form id="personForm">
           <div class="section-title">인적사항</div>
           <input type="text" id="name" placeholder="이름" required />
-          <input type="text" id="gender" placeholder="성별" />
+          <select id="gender">
+            <option value="">성별 선택</option>
+            <option value="남">남</option>
+            <option value="여">여</option>
+          </select>
           <input type="text" id="phone" placeholder="전화번호" />
           <input type="text" id="address" placeholder="주소" />
-          <input type="text" id="birthDate" maxlength="6" placeholder="생년월일 6자리 예: 821003" />
+          <input type="text" id="birthDate" maxlength="6" inputmode="numeric" placeholder="생년월일 6자리 예: 821003" />
           <div class="preview-text" id="birthPreview"></div>
-          <input type="text" id="age" placeholder="나이 자동계산" readonly />
+          <input type="text" id="age" placeholder="한국식 나이 자동계산" readonly />
           <input type="text" id="job" placeholder="직업" />
           <input type="text" id="tags" placeholder="태그(쉼표로 구분)" />
 
           <div class="section-title">상담내역</div>
-          <input type="text" id="firstConsultDate" maxlength="6" placeholder="상담일자 6자리 예: 260320" />
+          <input type="text" id="firstConsultDate" maxlength="6" inputmode="numeric" placeholder="상담일자 6자리 예: 260320" />
           <div class="preview-text" id="consultDatePreview"></div>
           <textarea id="firstNote" placeholder="상담내용"></textarea>
 
-          <button type="submit">저장</button>
+          <div class="form-actions">
+            <button type="submit">저장</button>
+            <button type="button" id="cancelFormButton" class="secondary-button">취소</button>
+          </div>
         </form>
-      </section>
-
-      <section class="panel">
-        <h2>사람 목록</h2>
-        <div id="personList" class="person-list"></div>
       </section>
 
       <section class="panel" id="detailPanel" hidden>
