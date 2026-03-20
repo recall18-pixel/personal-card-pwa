@@ -1,4 +1,4 @@
-const CACHE_VERSION = "v5";
+const CACHE_VERSION = "v6";
 const STATIC_CACHE = `personal-cards-static-${CACHE_VERSION}`;
 const HTML_CACHE = `personal-cards-html-${CACHE_VERSION}`;
 

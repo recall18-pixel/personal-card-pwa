@@ -347,6 +347,29 @@ button:hover {
   font-size: 14px;
 }
 
+.detail-edit-section h4 {
+  margin: 0 0 12px;
+}
+
+.detail-note-editor {
+  display: grid;
+  gap: 10px;
+}
+
+.detail-action-row {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.detail-action-row button {
+  width: auto;
+}
+
+.detail-span-all {
+  grid-column: 1 / -1;
+}
+
 .tags {
   display: flex;
   flex-wrap: wrap;

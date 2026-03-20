@@ -427,6 +427,49 @@ function createNoteItem(note) {
   `;
 }
 
+function bindDetailBirthPreview(person) {
+  const birthInput = document.getElementById("detailBirthDate");
+  const ageInput = document.getElementById("detailAge");
+  const preview = document.getElementById("detailBirthPreview");
+  if (!birthInput || !ageInput || !preview) return;
+
+  const updatePreview = () => {
+    const raw = digitsOnly(birthInput.value).slice(0, 6);
+    birthInput.value = raw;
+    ageInput.value = calculateKoreanAge(raw);
+    preview.textContent =
+      raw.length === 6 ? formatBirthPreview(raw) || "유효한 생년월일이 아닙니다." : "";
+  };
+
+  birthInput.addEventListener("input", updatePreview);
+  updatePreview();
+}
+
+function bindDetailConsultPreview() {
+  const consultInput = document.getElementById("detailConsultDate");
+  const preview = document.getElementById("detailConsultPreview");
+  if (!consultInput || !preview) return;
+
+  const updatePreview = () => {
+    const raw = digitsOnly(consultInput.value).slice(0, 6);
+    consultInput.value = raw;
+    preview.textContent =
+      raw.length === 6 ? formatConsultDate(raw) || "유효한 상담일자가 아닙니다." : "";
+  };
+
+  consultInput.addEventListener("input", updatePreview);
+  updatePreview();
+}
+
+function bindDetailPhoneFormatter() {
+  const phoneInput = document.getElementById("detailPhone");
+  if (!phoneInput) return;
+
+  phoneInput.addEventListener("input", () => {
+    phoneInput.value = formatPhoneNumber(phoneInput.value);
+  });
+}
+
 function renderList() {
   const listEl = document.getElementById("personList");
   const countEl = document.getElementById("personCount");
@@ -534,6 +577,72 @@ function renderDetailPanel() {
 
     <hr />
 
+    <div class="detail-edit-section">
+      <h4>인적사항 수정</h4>
+      <div class="detail-grid large">
+        <div>
+          <span class="detail-label">이름</span>
+          <input type="text" id="detailName" value="${escapeHtml(person.name)}" lang="ko" autocapitalize="off" autocorrect="off" spellcheck="false" />
+        </div>
+        <div>
+          <span class="detail-label">성별</span>
+          <select id="detailGender" lang="ko">
+            <option value="" ${person.gender ? "" : "selected"}>성별 선택</option>
+            <option value="남" ${person.gender === "남" ? "selected" : ""}>남</option>
+            <option value="여" ${person.gender === "여" ? "selected" : ""}>여</option>
+          </select>
+        </div>
+        <div>
+          <span class="detail-label">전화번호</span>
+          <input type="text" id="detailPhone" inputmode="numeric" value="${escapeHtml(person.phone || "")}" />
+        </div>
+        <div>
+          <span class="detail-label">메일주소</span>
+          <input type="email" id="detailEmail" value="${escapeHtml(person.email || "")}" autocapitalize="off" autocorrect="off" spellcheck="false" />
+        </div>
+        <div>
+          <span class="detail-label">생년월일 6자리</span>
+          <input type="text" id="detailBirthDate" maxlength="6" inputmode="numeric" value="${escapeHtml(person.birthDate || "")}" />
+          <div class="preview-text" id="detailBirthPreview"></div>
+        </div>
+        <div>
+          <span class="detail-label">한국식 나이</span>
+          <input type="text" id="detailAge" readonly />
+        </div>
+        <div>
+          <span class="detail-label">직업</span>
+          <input type="text" id="detailJob" value="${escapeHtml(person.job || "")}" lang="ko" autocapitalize="off" autocorrect="off" spellcheck="false" />
+        </div>
+        <div>
+          <span class="detail-label">주소</span>
+          <input type="text" id="detailAddress" value="${escapeHtml(person.address || "")}" lang="ko" autocapitalize="off" autocorrect="off" spellcheck="false" />
+        </div>
+        <div class="detail-span-all">
+          <span class="detail-label">태그</span>
+          <input type="text" id="detailTags" value="${escapeHtml((person.tags || []).join(", "))}" lang="ko" autocapitalize="off" autocorrect="off" spellcheck="false" />
+        </div>
+      </div>
+      <div class="detail-action-row">
+        <button type="button" id="saveDetailProfileButton">인적사항 저장</button>
+      </div>
+    </div>
+
+    <hr />
+
+    <div class="detail-edit-section">
+      <h4>상담내역 추가</h4>
+      <div class="detail-note-editor">
+        <input type="text" id="detailConsultDate" maxlength="6" inputmode="numeric" placeholder="상담일자 6자리 예: 260320" />
+        <div class="preview-text" id="detailConsultPreview"></div>
+        <textarea id="detailConsultContent" placeholder="상담내용을 입력하세요" lang="ko" autocapitalize="off" autocorrect="off" spellcheck="false"></textarea>
+        <div class="detail-action-row">
+          <button type="button" id="addDetailNoteButton">상담내역 추가</button>
+        </div>
+      </div>
+    </div>
+
+    <hr />
+
     <div class="notes-section">
       <h4>상담내역</h4>
       ${notesHtml || "<p class='empty'>상담내역이 없습니다.</p>"}
@@ -552,7 +661,91 @@ function renderDetailPanel() {
     });
   });
 
+  content.querySelector("#saveDetailProfileButton")?.addEventListener("click", () => {
+    saveDetailProfile(person.id);
+  });
+
+  content.querySelector("#addDetailNoteButton")?.addEventListener("click", () => {
+    addDetailNote(person.id);
+  });
+
+  bindDetailBirthPreview(person);
+  bindDetailConsultPreview();
+  bindDetailPhoneFormatter();
+
   panel.hidden = false;
+}
+
+function saveDetailProfile(personId) {
+  const person = people.find((item) => item.id === personId);
+  if (!person) return;
+
+  const name = document.getElementById("detailName")?.value.trim() || "";
+  const gender = document.getElementById("detailGender")?.value.trim() || "";
+  const phone = formatPhoneNumber(document.getElementById("detailPhone")?.value || "");
+  const email = document.getElementById("detailEmail")?.value.trim() || "";
+  const birthDate = digitsOnly(document.getElementById("detailBirthDate")?.value || "").slice(0, 6);
+  const job = document.getElementById("detailJob")?.value.trim() || "";
+  const address = document.getElementById("detailAddress")?.value.trim() || "";
+  const tagsRaw = document.getElementById("detailTags")?.value.trim() || "";
+
+  if (!name) {
+    alert("이름은 필수입니다.");
+    return;
+  }
+
+  if (birthDate && !parseBirthDate(birthDate)) {
+    alert("생년월일 6자리를 올바르게 입력하세요.");
+    return;
+  }
+
+  person.name = name;
+  person.gender = gender;
+  person.phone = phone;
+  person.email = email;
+  person.birthDate = birthDate;
+  person.job = job;
+  person.address = address;
+  person.tags = tagsRaw
+    ? tagsRaw.split(",").map((tag) => tag.trim()).filter(Boolean)
+    : [];
+  person.updatedAt = formatNow();
+
+  savePeople();
+  renderList();
+  renderDetailPanel();
+  alert("인적사항을 저장했습니다.");
+}
+
+function addDetailNote(personId) {
+  const person = people.find((item) => item.id === personId);
+  if (!person) return;
+
+  const rawDate = digitsOnly(document.getElementById("detailConsultDate")?.value || "").slice(0, 6);
+  const content = document.getElementById("detailConsultContent")?.value.trim() || "";
+  const formattedDate = formatConsultDate(rawDate);
+
+  if (!formattedDate) {
+    alert("상담일자 6자리를 올바르게 입력하세요.");
+    return;
+  }
+
+  if (!content) {
+    alert("상담내용을 입력하세요.");
+    return;
+  }
+
+  person.notes = Array.isArray(person.notes) ? person.notes : [];
+  person.notes.push({
+    rawDate,
+    date: formattedDate,
+    content
+  });
+  person.updatedAt = formatNow();
+
+  savePeople();
+  renderList();
+  renderDetailPanel();
 }
 
 function editNote(personId, noteIndex) {
