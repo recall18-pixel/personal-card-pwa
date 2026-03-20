@@ -1,11 +1,14 @@
-const STORAGE_KEY = "personal_cards_v4";
+const STORAGE_KEY = "personal_cards_v5";
 
 let people = loadPeople();
 let selectedPersonId = null;
+let deleteSelectionMode = false;
+let selectedDeleteIds = new Set();
 
 function loadPeople() {
   const raw =
     localStorage.getItem(STORAGE_KEY) ||
+    localStorage.getItem("personal_cards_v4") ||
     localStorage.getItem("personal_cards_v3") ||
     localStorage.getItem("personal_cards_v2");
 
@@ -112,6 +115,14 @@ function formatConsultDate(value) {
   return `${digits.slice(0, 2)}년 ${digits.slice(2, 4)}월 ${digits.slice(4, 6)}일`;
 }
 
+function formatPhoneNumber(value) {
+  const digits = digitsOnly(value).slice(0, 11);
+
+  if (digits.length < 4) return digits;
+  if (digits.length < 8) return `${digits.slice(0, 3)}-${digits.slice(3)}`;
+  return `${digits.slice(0, 3)}-${digits.slice(3, 7)}-${digits.slice(7)}`;
+}
+
 function normalizeNote(note, fallbackDate) {
   if (!note || typeof note !== "object") return null;
 
@@ -139,15 +150,11 @@ function normalizeImportedPeople(imported) {
           ? [{ date: item.updatedAt || item.createdAt || now, content: String(item.memo).trim() }]
           : [];
 
-      const normalizedNotes = fallbackNotes
-        .map((note) => normalizeNote(note, now))
-        .filter(Boolean);
-
       return {
         id: String(item.id || `${Date.now()}_${index}`),
         name: String(item.name || "").trim(),
         gender: String(item.gender || "").trim(),
-        phone: String(item.phone || "").trim(),
+        phone: formatPhoneNumber(item.phone || ""),
         address: String(item.address || "").trim(),
         birthDate: digitsOnly(item.birthDate || item.birthRaw || "").slice(0, 6),
         job: String(item.job || "").trim(),
@@ -157,7 +164,7 @@ function normalizeImportedPeople(imported) {
               .split(",")
               .map((tag) => tag.trim())
               .filter(Boolean),
-        notes: normalizedNotes,
+        notes: fallbackNotes.map((note) => normalizeNote(note, now)).filter(Boolean),
         createdAt: String(item.createdAt || now),
         updatedAt: String(item.updatedAt || item.createdAt || now)
       };
@@ -204,14 +211,6 @@ function mergePeople(existingPeople, importedPeople) {
   return merged;
 }
 
-function hideDetail() {
-  selectedPersonId = null;
-  const detailPanel = document.getElementById("detailPanel");
-  const detailContent = document.getElementById("detailContent");
-  if (detailPanel) detailPanel.hidden = true;
-  if (detailContent) detailContent.innerHTML = "";
-}
-
 function openForm() {
   const formPanel = document.getElementById("formPanel");
   const addButton = document.getElementById("toggleFormButton");
@@ -230,11 +229,55 @@ function closeForm() {
 function toggleForm() {
   const formPanel = document.getElementById("formPanel");
   if (!formPanel) return;
-  if (formPanel.hidden) {
-    openForm();
-  } else {
-    closeForm();
+  formPanel.hidden ? openForm() : closeForm();
+}
+
+function toggleDeleteMode() {
+  deleteSelectionMode = !deleteSelectionMode;
+
+  if (!deleteSelectionMode) {
+    selectedDeleteIds.clear();
   }
+
+  updateDeleteToolbar();
+  renderList();
+}
+
+function updateDeleteToolbar() {
+  const toggleButton = document.getElementById("toggleDeleteModeButton");
+  const deleteButton = document.getElementById("deleteSelectedButton");
+
+  if (toggleButton) {
+    toggleButton.textContent = deleteSelectionMode ? "선택취소" : "선택삭제";
+  }
+
+  if (deleteButton) {
+    deleteButton.hidden = !deleteSelectionMode;
+    deleteButton.textContent = `삭제 실행 (${selectedDeleteIds.size})`;
+  }
+}
+
+function deleteSelectedPeople() {
+  if (selectedDeleteIds.size === 0) {
+    alert("삭제할 고객을 먼저 선택하세요.");
+    return;
+  }
+
+  if (!confirm(`선택한 ${selectedDeleteIds.size}명을 삭제할까요?`)) {
+    return;
+  }
+
+  people = people.filter((person) => !selectedDeleteIds.has(person.id));
+  selectedDeleteIds.clear();
+  deleteSelectionMode = false;
+
+  if (selectedPersonId && !people.some((person) => person.id === selectedPersonId)) {
+    selectedPersonId = null;
+  }
+
+  savePeople();
+  updateDeleteToolbar();
+  renderList();
 }
 
 function bindDataControls() {
@@ -243,11 +286,15 @@ function bindDataControls() {
   const importFile = document.getElementById("importFile");
   const toggleFormButton = document.getElementById("toggleFormButton");
   const cancelFormButton = document.getElementById("cancelFormButton");
+  const toggleDeleteModeButton = document.getElementById("toggleDeleteModeButton");
+  const deleteSelectedButton = document.getElementById("deleteSelectedButton");
 
   exportButton?.addEventListener("click", exportData);
   importButton?.addEventListener("click", () => importFile?.click());
   toggleFormButton?.addEventListener("click", toggleForm);
   cancelFormButton?.addEventListener("click", closeForm);
+  toggleDeleteModeButton?.addEventListener("click", toggleDeleteMode);
+  deleteSelectedButton?.addEventListener("click", deleteSelectedPeople);
 }
 
 function bindImportFile() {
@@ -284,7 +331,6 @@ function bindImportFile() {
 
         savePeople();
         renderList();
-        hideDetail();
         alert(`${importedPeople.length}개의 카드 데이터를 불러왔습니다.`);
       } catch (error) {
         console.error("가져오기 실패:", error);
@@ -337,6 +383,15 @@ function bindConsultDatePreview() {
   updatePreview();
 }
 
+function bindPhoneFormatter() {
+  const phoneInput = document.getElementById("phone");
+  if (!phoneInput) return;
+
+  phoneInput.addEventListener("input", () => {
+    phoneInput.value = formatPhoneNumber(phoneInput.value);
+  });
+}
+
 function bindFormKeyboard() {
   const form = document.getElementById("personForm");
   if (!form) return;
@@ -346,6 +401,20 @@ function bindFormKeyboard() {
       event.preventDefault();
     }
   });
+}
+
+function togglePersonDetail(personId) {
+  selectedPersonId = selectedPersonId === personId ? null : personId;
+  renderList();
+}
+
+function createNoteItem(note) {
+  return `
+    <div class="note-item">
+      <div class="note-date">${escapeHtml(note.date || "-")}</div>
+      <div class="note-text">${escapeHtml(note.content).replace(/\n/g, "<br>")}</div>
+    </div>
+  `;
 }
 
 function renderList() {
@@ -368,173 +437,73 @@ function renderList() {
     .sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt))
     .forEach((person) => {
       const card = document.createElement("div");
+      const isOpen = selectedPersonId === person.id;
+      const isChecked = selectedDeleteIds.has(person.id);
       const koreanAge = calculateKoreanAge(person.birthDate);
-      const birthLabel = formatBirthPreview(person.birthDate);
       const consultCount = (person.notes || []).length;
       const tagsHtml = (person.tags || [])
         .map((tag) => `<span class="tag">${escapeHtml(tag)}</span>`)
         .join("");
+      const notesHtml = (person.notes || []).slice().reverse().map(createNoteItem).join("");
 
       card.className = "person-card";
       card.innerHTML = `
-        <div class="person-card-main">
-          <strong>${escapeHtml(person.name)}</strong>
+        <div class="person-card-top">
+          <div class="person-title-wrap">
+            ${
+              deleteSelectionMode
+                ? `<label class="select-box"><input type="checkbox" data-action="select"${isChecked ? " checked" : ""} /><span>선택</span></label>`
+                : ""
+            }
+            <button type="button" class="person-name-button" data-action="toggle">${escapeHtml(person.name)}</button>
+          </div>
           <div class="sub">${escapeHtml(person.gender || "-")} · ${escapeHtml(koreanAge ? `${koreanAge}세` : "-")}</div>
           <div class="sub">${escapeHtml(person.phone || "전화번호 없음")}</div>
           <div class="sub">${escapeHtml(person.job || "직업 미입력")}</div>
-          <div class="sub">${escapeHtml(birthLabel || "생년월일 미입력")}</div>
-          <div class="tags">${tagsHtml}</div>
           <div class="sub">상담내역 ${consultCount}건</div>
         </div>
-        <div class="person-card-actions">
-          <button type="button" data-action="detail">${selectedPersonId === person.id ? "닫기" : "보기"}</button>
-          <button type="button" data-action="delete">삭제</button>
-        </div>
+        ${
+          isOpen
+            ? `
+          <div class="person-card-detail">
+            <div class="detail-grid">
+              <div><span class="detail-label">성별</span><strong>${escapeHtml(person.gender || "-")}</strong></div>
+              <div><span class="detail-label">전화번호</span><strong>${escapeHtml(person.phone || "-")}</strong></div>
+              <div><span class="detail-label">생년월일</span><strong>${escapeHtml(formatBirthPreview(person.birthDate) || "-")}</strong></div>
+              <div><span class="detail-label">나이</span><strong>${escapeHtml(koreanAge ? `${koreanAge}세` : "-")}</strong></div>
+              <div><span class="detail-label">직업</span><strong>${escapeHtml(person.job || "-")}</strong></div>
+              <div><span class="detail-label">주소</span><strong>${escapeHtml(person.address || "-")}</strong></div>
+            </div>
+            <div class="tags">${tagsHtml}</div>
+            <div class="sub">생성일 ${escapeHtml(person.createdAt)}</div>
+            <div class="sub">수정일 ${escapeHtml(person.updatedAt)}</div>
+            <hr />
+            <div class="notes-section">
+              <h4>상담내역</h4>
+              ${notesHtml || "<p class='empty'>상담내역이 없습니다.</p>"}
+            </div>
+          </div>
+        `
+            : ""
+        }
       `;
 
-      card.querySelector('[data-action="detail"]')?.addEventListener("click", () => {
-        showDetail(person.id);
-        renderList();
+      card.querySelector('[data-action="toggle"]')?.addEventListener("click", () => {
+        togglePersonDetail(person.id);
       });
 
-      card.querySelector('[data-action="delete"]')?.addEventListener("click", () => {
-        deletePerson(person.id);
+      card.querySelector('[data-action="select"]')?.addEventListener("change", (event) => {
+        if (event.target.checked) {
+          selectedDeleteIds.add(person.id);
+        } else {
+          selectedDeleteIds.delete(person.id);
+        }
+
+        updateDeleteToolbar();
       });
 
       listEl.appendChild(card);
     });
-}
-
-function showDetail(personId) {
-  if (selectedPersonId === personId) {
-    hideDetail();
-    return;
-  }
-
-  const person = people.find((item) => item.id === personId);
-  if (!person) return;
-
-  selectedPersonId = personId;
-
-  const detailPanel = document.getElementById("detailPanel");
-  const detailContent = document.getElementById("detailContent");
-  if (!detailPanel || !detailContent) return;
-
-  const koreanAge = calculateKoreanAge(person.birthDate);
-  const notesHtml = (person.notes || [])
-    .slice()
-    .reverse()
-    .map(
-      (note) => `
-        <div class="note-item">
-          <div class="note-date">${escapeHtml(note.date || "-")}</div>
-          <div class="note-text">${escapeHtml(note.content).replace(/\n/g, "<br>")}</div>
-        </div>
-      `
-    )
-    .join("");
-
-  detailContent.innerHTML = `
-    <div class="detail-header">
-      <h3>${escapeHtml(person.name)}</h3>
-      <div class="detail-grid">
-        <div><span class="detail-label">성별</span><strong>${escapeHtml(person.gender || "-")}</strong></div>
-        <div><span class="detail-label">전화번호</span><strong>${escapeHtml(person.phone || "-")}</strong></div>
-        <div><span class="detail-label">생년월일</span><strong>${escapeHtml(formatBirthPreview(person.birthDate) || "-")}</strong></div>
-        <div><span class="detail-label">나이</span><strong>${escapeHtml(koreanAge ? `${koreanAge}세` : "-")}</strong></div>
-        <div><span class="detail-label">직업</span><strong>${escapeHtml(person.job || "-")}</strong></div>
-        <div><span class="detail-label">주소</span><strong>${escapeHtml(person.address || "-")}</strong></div>
-      </div>
-      <p>태그: ${(person.tags || []).map((tag) => `#${escapeHtml(tag)}`).join(" ") || "-"}</p>
-      <p>생성일 ${escapeHtml(person.createdAt)}</p>
-      <p>수정일 ${escapeHtml(person.updatedAt)}</p>
-    </div>
-
-    <hr />
-
-    <div class="add-note-box">
-      <h4>상담내역 추가</h4>
-      <input type="text" id="newConsultDate" maxlength="6" placeholder="상담일자 6자리 예: 260320" />
-      <div class="help-text" id="newConsultDatePreview"></div>
-      <textarea id="newNoteText" placeholder="상담내용을 입력하세요"></textarea>
-      <button type="button" id="addNoteButton">상담내역 저장</button>
-    </div>
-
-    <hr />
-
-    <div class="notes-section">
-      <h4>상담내역</h4>
-      ${notesHtml || "<p class='empty'>상담내역이 없습니다.</p>"}
-    </div>
-  `;
-
-  detailPanel.hidden = false;
-
-  const consultInput = detailContent.querySelector("#newConsultDate");
-  const consultPreview = detailContent.querySelector("#newConsultDatePreview");
-
-  consultInput?.addEventListener("input", () => {
-    const raw = digitsOnly(consultInput.value).slice(0, 6);
-    consultInput.value = raw;
-    consultPreview.textContent =
-      raw.length === 6 ? formatConsultDate(raw) || "유효한 상담일자가 아닙니다." : "";
-  });
-
-  detailContent.querySelector("#addNoteButton")?.addEventListener("click", addNote);
-}
-
-function addNote() {
-  if (!selectedPersonId) return;
-
-  const noteInput = document.getElementById("newNoteText");
-  const consultDateInput = document.getElementById("newConsultDate");
-  if (!noteInput || !consultDateInput) return;
-
-  const content = noteInput.value.trim();
-  const rawDate = digitsOnly(consultDateInput.value).slice(0, 6);
-  const formattedDate = formatConsultDate(rawDate);
-
-  if (!formattedDate) {
-    alert("상담일자 6자리를 올바르게 입력하세요.");
-    return;
-  }
-
-  if (!content) {
-    alert("상담내용을 입력하세요.");
-    return;
-  }
-
-  const person = people.find((item) => item.id === selectedPersonId);
-  if (!person) return;
-
-  person.notes = Array.isArray(person.notes) ? person.notes : [];
-  person.notes.push({
-    rawDate,
-    date: formattedDate,
-    content
-  });
-  person.updatedAt = formatNow();
-
-  savePeople();
-  selectedPersonId = null;
-  showDetail(person.id);
-  renderList();
-}
-
-function deletePerson(personId) {
-  const person = people.find((item) => item.id === personId);
-  if (!person) return;
-
-  if (!confirm(`${person.name} 카드를 삭제할까요?`)) return;
-
-  people = people.filter((item) => item.id !== personId);
-  savePeople();
-
-  if (selectedPersonId === personId) {
-    hideDetail();
-  }
-
-  renderList();
 }
 
 function bindForm() {
@@ -546,7 +515,7 @@ function bindForm() {
 
     const name = document.getElementById("name")?.value.trim() || "";
     const gender = document.getElementById("gender")?.value.trim() || "";
-    const phone = document.getElementById("phone")?.value.trim() || "";
+    const phone = formatPhoneNumber(document.getElementById("phone")?.value || "");
     const address = document.getElementById("address")?.value.trim() || "";
     const birthDate = digitsOnly(document.getElementById("birthDate")?.value || "").slice(0, 6);
     const job = document.getElementById("job")?.value.trim() || "";
@@ -596,6 +565,7 @@ function bindForm() {
 
     people.push(person);
     savePeople();
+    selectedPersonId = person.id;
     renderList();
     this.reset();
 
@@ -607,7 +577,6 @@ function bindForm() {
     if (consultDatePreview) consultDatePreview.textContent = "";
 
     closeForm();
-    hideDetail();
   });
 }
 
@@ -651,8 +620,10 @@ function init() {
   bindImportFile();
   bindBirthDatePreview();
   bindConsultDatePreview();
+  bindPhoneFormatter();
   bindFormKeyboard();
   bindForm();
+  updateDeleteToolbar();
   renderList();
   closeForm();
   registerServiceWorker();

@@ -37,7 +37,11 @@
       <section class="panel">
         <div class="panel-header">
           <h2>고객 목록</h2>
-          <span class="panel-count" id="personCount"></span>
+          <div class="list-toolbar">
+            <span class="panel-count" id="personCount"></span>
+            <button type="button" id="toggleDeleteModeButton" class="secondary-button toolbar-button">선택삭제</button>
+            <button type="button" id="deleteSelectedButton" class="danger-button toolbar-button" hidden>삭제 실행 (0)</button>
+          </div>
         </div>
         <div id="personList" class="person-list"></div>
       </section>
@@ -46,13 +50,15 @@
         <h2>고객 추가</h2>
         <form id="personForm">
           <div class="section-title">인적사항</div>
-          <input type="text" id="name" placeholder="이름" required />
-          <select id="gender">
-            <option value="">성별 선택</option>
-            <option value="남">남</option>
-            <option value="여">여</option>
-          </select>
-          <input type="text" id="phone" placeholder="전화번호" />
+          <div class="inline-fields">
+            <input type="text" id="name" placeholder="이름" required />
+            <select id="gender">
+              <option value="">성별 선택</option>
+              <option value="남">남</option>
+              <option value="여">여</option>
+            </select>
+          </div>
+          <input type="text" id="phone" inputmode="numeric" placeholder="전화번호" />
           <input type="text" id="address" placeholder="주소" />
           <input type="text" id="birthDate" maxlength="6" inputmode="numeric" placeholder="생년월일 6자리 예: 821003" />
           <div class="preview-text" id="birthPreview"></div>
@@ -70,11 +76,6 @@
             <button type="button" id="cancelFormButton" class="secondary-button">취소</button>
           </div>
         </form>
-      </section>
-
-      <section class="panel" id="detailPanel" hidden>
-        <h2>상세 보기</h2>
-        <div id="detailContent"></div>
       </section>
     </main>
   </div>
