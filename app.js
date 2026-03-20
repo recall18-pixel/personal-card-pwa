@@ -1,4 +1,4 @@
-const STORAGE_KEY = "personal_cards_v5";
+const STORAGE_KEY = "personal_cards_v6";
 
 let people = loadPeople();
 let selectedPersonId = null;
@@ -8,6 +8,7 @@ let selectedDeleteIds = new Set();
 function loadPeople() {
   const raw =
     localStorage.getItem(STORAGE_KEY) ||
+    localStorage.getItem("personal_cards_v5") ||
     localStorage.getItem("personal_cards_v4") ||
     localStorage.getItem("personal_cards_v3") ||
     localStorage.getItem("personal_cards_v2");
@@ -155,6 +156,7 @@ function normalizeImportedPeople(imported) {
         name: String(item.name || "").trim(),
         gender: String(item.gender || "").trim(),
         phone: formatPhoneNumber(item.phone || ""),
+        email: String(item.email || "").trim(),
         address: String(item.address || "").trim(),
         birthDate: digitsOnly(item.birthDate || item.birthRaw || "").slice(0, 6),
         job: String(item.job || "").trim(),
@@ -234,11 +236,9 @@ function toggleForm() {
 
 function toggleDeleteMode() {
   deleteSelectionMode = !deleteSelectionMode;
-
   if (!deleteSelectionMode) {
     selectedDeleteIds.clear();
   }
-
   updateDeleteToolbar();
   renderList();
 }
@@ -278,6 +278,7 @@ function deleteSelectedPeople() {
   savePeople();
   updateDeleteToolbar();
   renderList();
+  renderDetailPanel();
 }
 
 function bindDataControls() {
@@ -331,6 +332,7 @@ function bindImportFile() {
 
         savePeople();
         renderList();
+        renderDetailPanel();
         alert(`${importedPeople.length}개의 카드 데이터를 불러왔습니다.`);
       } catch (error) {
         console.error("가져오기 실패:", error);
@@ -403,9 +405,14 @@ function bindFormKeyboard() {
   });
 }
 
-function togglePersonDetail(personId) {
+function showDetail(personId) {
   selectedPersonId = selectedPersonId === personId ? null : personId;
   renderList();
+  renderDetailPanel();
+
+  if (selectedPersonId) {
+    document.getElementById("detailPanel")?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
 }
 
 function createNoteItem(note) {
@@ -437,16 +444,11 @@ function renderList() {
     .sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt))
     .forEach((person) => {
       const card = document.createElement("div");
-      const isOpen = selectedPersonId === person.id;
       const isChecked = selectedDeleteIds.has(person.id);
+      const isActive = selectedPersonId === person.id;
       const koreanAge = calculateKoreanAge(person.birthDate);
-      const consultCount = (person.notes || []).length;
-      const tagsHtml = (person.tags || [])
-        .map((tag) => `<span class="tag">${escapeHtml(tag)}</span>`)
-        .join("");
-      const notesHtml = (person.notes || []).slice().reverse().map(createNoteItem).join("");
 
-      card.className = "person-card";
+      card.className = `person-card${isActive ? " active" : ""}`;
       card.innerHTML = `
         <div class="person-card-top">
           <div class="person-title-wrap">
@@ -460,36 +462,12 @@ function renderList() {
           <div class="sub">${escapeHtml(person.gender || "-")} · ${escapeHtml(koreanAge ? `${koreanAge}세` : "-")}</div>
           <div class="sub">${escapeHtml(person.phone || "전화번호 없음")}</div>
           <div class="sub">${escapeHtml(person.job || "직업 미입력")}</div>
-          <div class="sub">상담내역 ${consultCount}건</div>
+          <div class="sub">상담내역 ${(person.notes || []).length}건</div>
         </div>
-        ${
-          isOpen
-            ? `
-          <div class="person-card-detail">
-            <div class="detail-grid">
-              <div><span class="detail-label">성별</span><strong>${escapeHtml(person.gender || "-")}</strong></div>
-              <div><span class="detail-label">전화번호</span><strong>${escapeHtml(person.phone || "-")}</strong></div>
-              <div><span class="detail-label">생년월일</span><strong>${escapeHtml(formatBirthPreview(person.birthDate) || "-")}</strong></div>
-              <div><span class="detail-label">나이</span><strong>${escapeHtml(koreanAge ? `${koreanAge}세` : "-")}</strong></div>
-              <div><span class="detail-label">직업</span><strong>${escapeHtml(person.job || "-")}</strong></div>
-              <div><span class="detail-label">주소</span><strong>${escapeHtml(person.address || "-")}</strong></div>
-            </div>
-            <div class="tags">${tagsHtml}</div>
-            <div class="sub">생성일 ${escapeHtml(person.createdAt)}</div>
-            <div class="sub">수정일 ${escapeHtml(person.updatedAt)}</div>
-            <hr />
-            <div class="notes-section">
-              <h4>상담내역</h4>
-              ${notesHtml || "<p class='empty'>상담내역이 없습니다.</p>"}
-            </div>
-          </div>
-        `
-            : ""
-        }
       `;
 
       card.querySelector('[data-action="toggle"]')?.addEventListener("click", () => {
-        togglePersonDetail(person.id);
+        showDetail(person.id);
       });
 
       card.querySelector('[data-action="select"]')?.addEventListener("change", (event) => {
@@ -498,12 +476,69 @@ function renderList() {
         } else {
           selectedDeleteIds.delete(person.id);
         }
-
         updateDeleteToolbar();
       });
 
       listEl.appendChild(card);
     });
+}
+
+function renderDetailPanel() {
+  const panel = document.getElementById("detailPanel");
+  const content = document.getElementById("detailContent");
+  if (!panel || !content) return;
+
+  const person = people.find((item) => item.id === selectedPersonId);
+  if (!person) {
+    panel.hidden = true;
+    content.innerHTML = "";
+    return;
+  }
+
+  const koreanAge = calculateKoreanAge(person.birthDate);
+  const tagsHtml = (person.tags || [])
+    .map((tag) => `<span class="tag">${escapeHtml(tag)}</span>`)
+    .join("");
+  const notesHtml = (person.notes || []).slice().reverse().map(createNoteItem).join("");
+
+  content.innerHTML = `
+    <div class="detail-hero">
+      <div>
+        <h3>${escapeHtml(person.name)}</h3>
+        <p class="sub">${escapeHtml(person.gender || "-")} · ${escapeHtml(koreanAge ? `${koreanAge}세` : "-")}</p>
+      </div>
+      <button type="button" id="closeDetailButton" class="secondary-button detail-close">닫기</button>
+    </div>
+
+    <div class="detail-grid large">
+      <div><span class="detail-label">전화번호</span><strong>${escapeHtml(person.phone || "-")}</strong></div>
+      <div><span class="detail-label">메일주소</span><strong>${escapeHtml(person.email || "-")}</strong></div>
+      <div><span class="detail-label">생년월일</span><strong>${escapeHtml(formatBirthPreview(person.birthDate) || "-")}</strong></div>
+      <div><span class="detail-label">직업</span><strong>${escapeHtml(person.job || "-")}</strong></div>
+      <div><span class="detail-label">주소</span><strong>${escapeHtml(person.address || "-")}</strong></div>
+      <div><span class="detail-label">태그</span><strong>${tagsHtml || "-"}</strong></div>
+    </div>
+
+    <div class="detail-meta">
+      <span>생성일 ${escapeHtml(person.createdAt)}</span>
+      <span>수정일 ${escapeHtml(person.updatedAt)}</span>
+    </div>
+
+    <hr />
+
+    <div class="notes-section">
+      <h4>상담내역</h4>
+      ${notesHtml || "<p class='empty'>상담내역이 없습니다.</p>"}
+    </div>
+  `;
+
+  content.querySelector("#closeDetailButton")?.addEventListener("click", () => {
+    selectedPersonId = null;
+    renderList();
+    renderDetailPanel();
+  });
+
+  panel.hidden = false;
 }
 
 function bindForm() {
@@ -516,6 +551,7 @@ function bindForm() {
     const name = document.getElementById("name")?.value.trim() || "";
     const gender = document.getElementById("gender")?.value.trim() || "";
     const phone = formatPhoneNumber(document.getElementById("phone")?.value || "");
+    const email = document.getElementById("email")?.value.trim() || "";
     const address = document.getElementById("address")?.value.trim() || "";
     const birthDate = digitsOnly(document.getElementById("birthDate")?.value || "").slice(0, 6);
     const job = document.getElementById("job")?.value.trim() || "";
@@ -544,6 +580,7 @@ function bindForm() {
       name,
       gender,
       phone,
+      email,
       address,
       birthDate,
       job,
@@ -567,6 +604,7 @@ function bindForm() {
     savePeople();
     selectedPersonId = person.id;
     renderList();
+    renderDetailPanel();
     this.reset();
 
     const ageInput = document.getElementById("age");
@@ -625,6 +663,7 @@ function init() {
   bindForm();
   updateDeleteToolbar();
   renderList();
+  renderDetailPanel();
   closeForm();
   registerServiceWorker();
 }
