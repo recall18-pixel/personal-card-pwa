@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#1f2937" />
+  <title>설정 | 개인카드 PWA</title>
+  <link rel="manifest" href="manifest.json" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="app">
+    <header class="hero">
+      <div class="hero-copy">
+        <nav class="page-nav">
+          <a class="back-link" href="index.html">홈</a>
+          <a class="back-link" href="customer.html">고객관리</a>
+          <a class="back-link" href="rental.html">임대관리</a>
+          <a class="back-link current" href="settings.html">설정</a>
+        </nav>
+        <h1>설정</h1>
+        <p class="topbar-copy">앱 구조와 데이터 상태를 점검하는 화면입니다.</p>
+      </div>
+    </header>
+
+    <main class="container">
+      <section class="panel">
+        <h2>데이터 관리</h2>
+        <div class="backup-actions">
+          <label class="field-label">백업</label>
+          <button type="button" id="exportButton">백업 파일 다운로드</button>
+          <label class="field-label" for="importMode">가져오기 방식</label>
+          <select id="importMode">
+            <option value="merge">병합 (기존 데이터 유지)</option>
+            <option value="replace">덮어쓰기 (기존 데이터 삭제)</option>
+          </select>
+          <input type="file" id="importFile" accept=".json,application/json" hidden />
+          <button type="button" id="importButton">백업 파일 불러오기</button>
+        </div>
+      </section>
+
+      <section class="panel">
+        <h2>저장소 정보</h2>
+        <div id="storageInfo" class="detail-grid"></div>
+      </section>
+
+      <section class="panel">
+        <h2>캐시 관리</h2>
+        <p class="help-text">업데이트 후 화면이 갱신되지 않을 때 사용하세요.</p>
+        <button type="button" id="clearCacheButton" class="secondary-button">캐시 초기화 후 새로고침</button>
+      </section>
+    </main>
+  </div>
+
+  <script src="common.js"></script>
+  <script src="app.js"></script>
+  <script>
+    (function () {
+      const STORAGE_KEY = "personal_cards_v6";
+
+      function showStorageInfo() {
+        const raw = localStorage.getItem(STORAGE_KEY) || "[]";
+        let count = 0;
+        try { count = JSON.parse(raw).length; } catch {}
+        const bytes = new TextEncoder().encode(raw).length;
+        const kb = (bytes / 1024).toFixed(1);
+
+        document.getElementById("storageInfo").innerHTML = `
+          <div><span class="detail-label">등록 고객 수</span><strong>${count}명</strong></div>
+          <div><span class="detail-label">저장 용량</span><strong>${kb} KB</strong></div>
+        `;
+      }
+
+      document.getElementById("clearCacheButton").addEventListener("click", async () => {
+        if (!confirm("캐시를 초기화하면 앱이 다시 로딩됩니다. 계속할까요?")) return;
+        try {
+          if ("caches" in window) {
+            const keys = await caches.keys();
+            await Promise.all(keys.map((k) => caches.delete(k)));
+          }
+          if ("serviceWorker" in navigator) {
+            const reg = await navigator.serviceWorker.getRegistration();
+            if (reg) await reg.unregister();
+          }
+          window.location.reload();
+        } catch {
+          alert("캐시 초기화 중 오류가 발생했습니다.");
+        }
+      });
+
+      showStorageInfo();
+    })();
+  </script>
+</body>
+</html>

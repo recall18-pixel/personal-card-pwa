@@ -907,7 +907,6 @@ function init() {
   renderList();
   renderDetailPanel();
   closeForm();
-  registerServiceWorker();
 }
 
 init();
