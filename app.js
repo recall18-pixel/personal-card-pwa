@@ -406,13 +406,17 @@ function bindFormKeyboard() {
 }
 
 function showDetail(personId) {
-  selectedPersonId = selectedPersonId === personId ? null : personId;
+  selectedPersonId = personId;
   renderList();
   renderDetailPanel();
+}
 
-  if (selectedPersonId) {
-    document.getElementById("detailPanel")?.scrollIntoView({ behavior: "smooth", block: "start" });
-  }
+function closeDetailSheet() {
+  selectedPersonId = null;
+  const sheetRoot = document.getElementById("detailSheetRoot");
+  if (sheetRoot) sheetRoot.hidden = true;
+  document.body.classList.remove("sheet-open");
+  renderList();
 }
 
 function createNoteItem(note) {
@@ -530,13 +534,14 @@ function renderList() {
 }
 
 function renderDetailPanel() {
-  const panel = document.getElementById("detailPanel");
+  const sheetRoot = document.getElementById("detailSheetRoot");
   const content = document.getElementById("detailContent");
-  if (!panel || !content) return;
+  if (!sheetRoot || !content) return;
 
   const person = people.find((item) => item.id === selectedPersonId);
   if (!person) {
-    panel.hidden = true;
+    sheetRoot.hidden = true;
+    document.body.classList.remove("sheet-open");
     content.innerHTML = "";
     return;
   }
@@ -650,9 +655,7 @@ function renderDetailPanel() {
   `;
 
   content.querySelector("#closeDetailButton")?.addEventListener("click", () => {
-    selectedPersonId = null;
-    renderList();
-    renderDetailPanel();
+    closeDetailSheet();
   });
 
   content.querySelectorAll('[data-action="edit-note"]').forEach((button) => {
@@ -673,7 +676,9 @@ function renderDetailPanel() {
   bindDetailConsultPreview();
   bindDetailPhoneFormatter();
 
-  panel.hidden = false;
+  sheetRoot.hidden = false;
+  document.body.classList.add("sheet-open");
+  sheetRoot.querySelector(".bottom-sheet")?.scrollTo(0, 0);
 }
 
 function saveDetailProfile(personId) {
@@ -895,6 +900,16 @@ function registerServiceWorker() {
   });
 }
 
+function bindSheetBackdrop() {
+  document.getElementById("sheetBackdrop")?.addEventListener("click", () => {
+    closeDetailSheet();
+  });
+
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") closeDetailSheet();
+  });
+}
+
 function init() {
   bindDataControls();
   bindImportFile();
@@ -903,9 +918,9 @@ function init() {
   bindPhoneFormatter();
   bindFormKeyboard();
   bindForm();
+  bindSheetBackdrop();
   updateDeleteToolbar();
   renderList();
-  renderDetailPanel();
   closeForm();
 }
 

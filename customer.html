@@ -39,11 +39,6 @@
         <div id="personList" class="person-list"></div>
       </section>
 
-      <section class="panel" id="detailPanel" hidden>
-        <h2>상세 보기</h2>
-        <div id="detailContent"></div>
-      </section>
-
       <section class="panel" id="formPanel" hidden>
         <h2>고객 추가</h2>
         <form id="personForm" lang="ko">
@@ -81,5 +76,14 @@
 
   <script src="common.js"></script>
   <script src="app.js"></script>
+
+  <!-- 고객 상세 바텀 시트 -->
+  <div id="detailSheetRoot" class="sheet-root" hidden>
+    <div class="sheet-backdrop" id="sheetBackdrop"></div>
+    <div class="bottom-sheet" role="dialog" aria-modal="true" aria-label="고객 상세">
+      <div class="sheet-handle"></div>
+      <div id="detailContent"></div>
+    </div>
+  </div>
 </body>
 </html>
