@@ -5,7 +5,6 @@ let selectedPersonId = null;
 let deleteSelectionMode = false;
 let selectedDeleteIds = new Set();
 let showHidden = false;
-let showHidden = false;
 
 function loadPeople() {
   const raw =
