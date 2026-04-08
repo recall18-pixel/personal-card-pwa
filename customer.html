@@ -3,38 +3,26 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="theme-color" content="#1f2937" />
+  <meta name="theme-color" content="#4f46e5" />
   <title>고객관리 | 개인카드 PWA</title>
   <link rel="manifest" href="manifest.json" />
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
   <div class="app">
-    <header class="hero">
-      <div class="hero-copy">
-        <nav class="page-nav">
-          <a class="back-link" href="index.html">홈</a>
-          <a class="back-link current" href="customer.html">고객관리</a>
-          <a class="back-link" href="rental.html">임대관리</a>
-          <a class="back-link" href="settings.html">설정</a>
-        </nav>
-        <h1>고객관리</h1>
-        <p class="topbar-copy">인적사항과 상담내역을 함께 관리합니다.</p>
-      </div>
-
-      <section class="panel data-panel">
-        <h2>데이터 관리</h2>
-        <div class="backup-actions">
-          <button type="button" id="exportButton">백업</button>
-          <label class="field-label" for="importMode">가져오기 방식</label>
-          <select id="importMode">
-            <option value="merge">병합</option>
-            <option value="replace">덮어쓰기</option>
-          </select>
-          <input type="file" id="importFile" accept=".json,application/json" hidden />
-          <button type="button" id="importButton">불러오기</button>
+    <header class="page-header">
+      <nav class="page-nav">
+        <a class="nav-link" href="index.html">홈</a>
+        <a class="nav-link current" href="customer.html">고객관리</a>
+        <a class="nav-link" href="rental.html">임대관리</a>
+        <a class="nav-link" href="settings.html">설정</a>
+      </nav>
+      <div class="page-title-row">
+        <div>
+          <h1 class="page-title">고객관리</h1>
+          <p class="page-desc">인적사항과 상담내역을 함께 관리합니다.</p>
         </div>
-      </section>
+      </div>
     </header>
 
     <main class="container">
