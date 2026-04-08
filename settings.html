@@ -47,6 +47,12 @@
       </section>
 
       <section class="panel">
+        <h2>앱 잠금 (PIN)</h2>
+        <p class="help-text" id="pinStatusText"></p>
+        <div id="pinActions" class="backup-actions" style="margin-top:10px"></div>
+      </section>
+
+      <section class="panel">
         <h2>캐시 관리</h2>
         <p class="help-text">업데이트 후 화면이 갱신되지 않을 때 사용하세요.</p>
         <button type="button" id="clearCacheButton" class="secondary-button">캐시 초기화 후 새로고침</button>
@@ -91,6 +97,70 @@
       });
 
       showStorageInfo();
+
+      // ── PIN 관리 ──
+      function renderPinUI() {
+        const hasPin = !!(window.pinLock && window.pinLock.getStoredPinHash());
+        document.getElementById("pinStatusText").textContent = hasPin
+          ? "4자리 PIN 잠금이 설정되어 있습니다."
+          : "현재 잠금이 설정되어 있지 않습니다.";
+        const el = document.getElementById("pinActions");
+        if (hasPin) {
+          el.innerHTML = '<button type="button" id="btnChangePin">고PIN 변경</button><button type="button" id="btnRemovePin" class="secondary-button">잠금 해제</button>';
+          document.getElementById("btnChangePin").addEventListener("click", startSetPin);
+          document.getElementById("btnRemovePin").addEventListener("click", startRemovePin);
+        } else {
+          el.innerHTML = '<button type="button" id="btnSetPin">PIN 설정</button>';
+          document.getElementById("btnSetPin").addEventListener("click", startSetPin);
+        }
+      }
+
+      function startSetPin() {
+        let firstPin = null;
+        const o1 = window.pinLock.createPinOverlay(
+          "새 PIN 입력 (4자리)",
+          async (pin) => {
+            firstPin = pin;
+            o1.remove();
+            const o2 = window.pinLock.createPinOverlay(
+              "PIN 확인",
+              async (pin2) => {
+                if (pin2 === firstPin) {
+                  await window.pinLock.setPin(pin2);
+                  o2.remove();
+                  renderPinUI();
+                  return true;
+                }
+                return "PIN이 일치하지 않습니다. 다시 입력하세요.";
+              },
+              () => {}
+            );
+            document.body.appendChild(o2);
+            return true;
+          },
+          () => {}
+        );
+        document.body.appendChild(o1);
+      }
+
+      function startRemovePin() {
+        const o = window.pinLock.createPinOverlay(
+          "현재 PIN 입력",
+          async (pin) => {
+            if (await window.pinLock.verifyPin(pin)) {
+              window.pinLock.removePin();
+              o.remove();
+              renderPinUI();
+              return true;
+            }
+            return false;
+          },
+          () => {}
+        );
+        document.body.appendChild(o);
+      }
+
+      renderPinUI();
     })();
   </script>
 </body>

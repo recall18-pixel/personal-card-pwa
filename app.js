@@ -582,54 +582,9 @@ function renderDetailPanel() {
 
     <hr />
 
-    <div class="detail-edit-section">
-      <h4>인적사항 수정</h4>
-      <div class="detail-grid large">
-        <div>
-          <span class="detail-label">이름</span>
-          <input type="text" id="detailName" value="${escapeHtml(person.name)}" lang="ko" autocapitalize="off" autocorrect="off" spellcheck="false" />
-        </div>
-        <div>
-          <span class="detail-label">성별</span>
-          <select id="detailGender" lang="ko">
-            <option value="" ${person.gender ? "" : "selected"}>성별 선택</option>
-            <option value="남" ${person.gender === "남" ? "selected" : ""}>남</option>
-            <option value="여" ${person.gender === "여" ? "selected" : ""}>여</option>
-          </select>
-        </div>
-        <div>
-          <span class="detail-label">전화번호</span>
-          <input type="text" id="detailPhone" inputmode="numeric" value="${escapeHtml(person.phone || "")}" />
-        </div>
-        <div>
-          <span class="detail-label">메일주소</span>
-          <input type="email" id="detailEmail" value="${escapeHtml(person.email || "")}" autocapitalize="off" autocorrect="off" spellcheck="false" />
-        </div>
-        <div>
-          <span class="detail-label">생년월일 6자리</span>
-          <input type="text" id="detailBirthDate" maxlength="6" inputmode="numeric" value="${escapeHtml(person.birthDate || "")}" />
-          <div class="preview-text" id="detailBirthPreview"></div>
-        </div>
-        <div>
-          <span class="detail-label">한국식 나이</span>
-          <input type="text" id="detailAge" readonly />
-        </div>
-        <div>
-          <span class="detail-label">직업</span>
-          <input type="text" id="detailJob" value="${escapeHtml(person.job || "")}" lang="ko" autocapitalize="off" autocorrect="off" spellcheck="false" />
-        </div>
-        <div>
-          <span class="detail-label">주소</span>
-          <input type="text" id="detailAddress" value="${escapeHtml(person.address || "")}" lang="ko" autocapitalize="off" autocorrect="off" spellcheck="false" />
-        </div>
-        <div class="detail-span-all">
-          <span class="detail-label">태그</span>
-          <input type="text" id="detailTags" value="${escapeHtml((person.tags || []).join(", "))}" lang="ko" autocapitalize="off" autocorrect="off" spellcheck="false" />
-        </div>
-      </div>
-      <div class="detail-action-row">
-        <button type="button" id="saveDetailProfileButton">인적사항 저장</button>
-      </div>
+    <div class="notes-section">
+      <h4>상담내역</h4>
+      ${notesHtml || "<p class='empty'>상담내역이 없습니다.</p>"}
     </div>
 
     <hr />
@@ -648,9 +603,59 @@ function renderDetailPanel() {
 
     <hr />
 
-    <div class="notes-section">
-      <h4>상담내역</h4>
-      ${notesHtml || "<p class='empty'>상담내역이 없습니다.</p>"}
+    <div class="accordion-section">
+      <button type="button" class="accordion-toggle" id="toggleProfileEdit">
+        <span>인적사항 수정</span>
+        <span class="accordion-icon">›</span>
+      </button>
+      <div class="accordion-body" id="profileEditBody" hidden>
+        <div class="detail-grid large">
+          <div>
+            <span class="detail-label">이름</span>
+            <input type="text" id="detailName" value="${escapeHtml(person.name)}" lang="ko" autocapitalize="off" autocorrect="off" spellcheck="false" />
+          </div>
+          <div>
+            <span class="detail-label">성별</span>
+            <select id="detailGender" lang="ko">
+              <option value="" ${person.gender ? "" : "selected"}>성별 선택</option>
+              <option value="남" ${person.gender === "남" ? "selected" : ""}>남</option>
+              <option value="여" ${person.gender === "여" ? "selected" : ""}>여</option>
+            </select>
+          </div>
+          <div>
+            <span class="detail-label">전화번호</span>
+            <input type="text" id="detailPhone" inputmode="numeric" value="${escapeHtml(person.phone || "")}" />
+          </div>
+          <div>
+            <span class="detail-label">메일주소</span>
+            <input type="email" id="detailEmail" value="${escapeHtml(person.email || "")}" autocapitalize="off" autocorrect="off" spellcheck="false" />
+          </div>
+          <div>
+            <span class="detail-label">생년월일 6자리</span>
+            <input type="text" id="detailBirthDate" maxlength="6" inputmode="numeric" value="${escapeHtml(person.birthDate || "")}" />
+            <div class="preview-text" id="detailBirthPreview"></div>
+          </div>
+          <div>
+            <span class="detail-label">한국식 나이</span>
+            <input type="text" id="detailAge" readonly />
+          </div>
+          <div>
+            <span class="detail-label">직업</span>
+            <input type="text" id="detailJob" value="${escapeHtml(person.job || "")}" lang="ko" autocapitalize="off" autocorrect="off" spellcheck="false" />
+          </div>
+          <div>
+            <span class="detail-label">주소</span>
+            <input type="text" id="detailAddress" value="${escapeHtml(person.address || "")}" lang="ko" autocapitalize="off" autocorrect="off" spellcheck="false" />
+          </div>
+          <div class="detail-span-all">
+            <span class="detail-label">태그</span>
+            <input type="text" id="detailTags" value="${escapeHtml((person.tags || []).join(", "))}" lang="ko" autocapitalize="off" autocorrect="off" spellcheck="false" />
+          </div>
+        </div>
+        <div class="detail-action-row" style="margin-top:12px">
+          <button type="button" id="saveDetailProfileButton">인적사항 저장</button>
+        </div>
+      </div>
     </div>
   `;
 
@@ -670,6 +675,15 @@ function renderDetailPanel() {
 
   content.querySelector("#addDetailNoteButton")?.addEventListener("click", () => {
     addDetailNote(person.id);
+  });
+
+  content.querySelector("#toggleProfileEdit")?.addEventListener("click", () => {
+    const body = document.getElementById("profileEditBody");
+    const icon = content.querySelector(".accordion-icon");
+    if (body) {
+      body.hidden = !body.hidden;
+      icon.textContent = body.hidden ? "›" : "▾";
+    }
   });
 
   bindDetailBirthPreview(person);

@@ -778,3 +778,194 @@ body.sheet-open {
     font-size: 1.8rem;
   }
 }
+
+
+/* ── 아코디언 ── */
+.accordion-section {
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  overflow: hidden;
+}
+
+.accordion-toggle {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 15px 18px;
+  background: var(--surface-soft);
+  color: var(--brand-strong);
+  font-size: 0.93rem;
+  font-weight: 700;
+  border: none;
+  border-radius: 0;
+  text-align: left;
+  box-shadow: none;
+  cursor: pointer;
+}
+
+.accordion-toggle:hover {
+  background: #e8f4f1;
+  transform: none;
+  box-shadow: none;
+}
+
+.accordion-icon {
+  font-size: 1.3rem;
+  color: var(--muted);
+  line-height: 1;
+  transition: transform 0.2s;
+}
+
+.accordion-body {
+  padding: 16px 18px 20px;
+  border-top: 1px solid var(--line);
+}
+
+.accordion-body[hidden] {
+  display: none;
+}
+
+/* ── PIN 잠금 ── */
+.pin-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 600;
+  display: grid;
+  place-items: center;
+  background: rgba(3, 28, 26, 0.68);
+  backdrop-filter: blur(8px);
+  animation: pinBgIn 0.2s ease;
+}
+
+@keyframes pinBgIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.pin-overlay.pin-unlocked {
+  animation: pinBgOut 0.28s ease forwards;
+}
+
+@keyframes pinBgOut {
+  to { opacity: 0; }
+}
+
+.pin-card {
+  width: min(360px, calc(100vw - 32px));
+  padding: 36px 24px 32px;
+  border-radius: 28px;
+  background: #fff;
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.28);
+  text-align: center;
+  animation: pinCardIn 0.25s cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+@keyframes pinCardIn {
+  from { transform: scale(0.88); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+
+.pin-title {
+  margin: 0 0 24px;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--brand-strong);
+}
+
+.pin-dots {
+  display: flex;
+  justify-content: center;
+  gap: 16px;
+  margin-bottom: 6px;
+}
+
+.pin-dot {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 2px solid var(--line-strong);
+  background: transparent;
+  transition: background 0.12s, border-color 0.12s;
+}
+
+.pin-dot.filled {
+  background: var(--brand);
+  border-color: var(--brand);
+}
+
+.pin-error {
+  min-height: 22px;
+  margin: 6px 0 14px;
+  color: var(--danger);
+  font-size: 0.82rem;
+}
+
+.pin-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  max-width: 260px;
+  margin: 0 auto;
+}
+
+.pin-key {
+  aspect-ratio: 1;
+  border: 1.5px solid var(--line);
+  border-radius: 14px;
+  background: var(--surface-soft);
+  font-size: 1.35rem;
+  font-weight: 600;
+  color: var(--text);
+  cursor: pointer;
+  transition: background 0.1s;
+  box-shadow: none;
+}
+
+.pin-key:hover {
+  background: var(--brand-soft);
+  border-color: var(--brand);
+  color: var(--brand-strong);
+  box-shadow: none;
+  transform: none;
+}
+
+.pin-key:active {
+  background: var(--brand);
+  color: #fff;
+  transform: scale(0.94);
+}
+
+.pin-key-del {
+  font-size: 1.1rem;
+}
+
+.pin-cancel {
+  margin-top: 16px;
+  background: transparent;
+  color: var(--muted);
+  font-size: 0.88rem;
+  font-weight: 500;
+  border: none;
+  box-shadow: none;
+  padding: 8px 16px;
+}
+
+.pin-cancel:hover {
+  background: transparent;
+  box-shadow: none;
+  color: var(--text);
+  transform: none;
+}
+
+@keyframes pin-shake {
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(-8px); }
+  40% { transform: translateX(8px); }
+  60% { transform: translateX(-5px); }
+  80% { transform: translateX(5px); }
+}
+
+.pin-shake {
+  animation: pin-shake 0.45s ease;
+}
