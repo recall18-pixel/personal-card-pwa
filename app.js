@@ -4,6 +4,8 @@ let people = loadPeople();
 let selectedPersonId = null;
 let deleteSelectionMode = false;
 let selectedDeleteIds = new Set();
+let showHidden = false;
+let showHidden = false;
 
 function loadPeople() {
   const raw =
@@ -167,6 +169,7 @@ function normalizeImportedPeople(imported) {
               .map((tag) => tag.trim())
               .filter(Boolean),
         notes: fallbackNotes.map((note) => normalizeNote(note, now)).filter(Boolean),
+        hidden: !!item.hidden,
         createdAt: String(item.createdAt || now),
         updatedAt: String(item.updatedAt || item.createdAt || now)
       };
@@ -474,22 +477,55 @@ function bindDetailPhoneFormatter() {
   });
 }
 
+function toggleShowHidden() {
+  showHidden = !showHidden;
+  renderList();
+}
+
+function toggleHidePerson(personId) {
+  const person = people.find((p) => p.id === personId);
+  if (!person) return;
+  person.hidden = !person.hidden;
+  person.updatedAt = formatNow();
+  savePeople();
+  if (person.hidden) {
+    closeDetailSheet();
+  } else {
+    renderList();
+    renderDetailPanel();
+  }
+}
+
 function renderList() {
   const listEl = document.getElementById("personList");
   const countEl = document.getElementById("personCount");
   if (!listEl) return;
 
   listEl.innerHTML = "";
+
+  const visiblePeople = people.filter((p) => !p.hidden);
+  const hiddenPeople = people.filter((p) => p.hidden);
+  const displayList = showHidden ? people : visiblePeople;
+
   if (countEl) {
-    countEl.textContent = `총 ${people.length}명`;
+    if (hiddenPeople.length > 0) {
+      countEl.innerHTML = showHidden
+        ? `전체 ${people.length}명 &nbsp;<button type="button" class="count-link" id="toggleHiddenInCount">숨김 감추기</button>`
+        : `전체 ${visiblePeople.length}명 &middot; <button type="button" class="count-link" id="toggleHiddenInCount">숨김 ${hiddenPeople.length}명</button>`;
+      document.getElementById("toggleHiddenInCount")?.addEventListener("click", toggleShowHidden);
+    } else {
+      countEl.textContent = `전체 ${people.length}명`;
+    }
   }
 
-  if (people.length === 0) {
-    listEl.innerHTML = `<p class="empty">등록된 사람이 없습니다. 고객추가 버튼으로 첫 카드를 만들어보세요.</p>`;
+  if (displayList.length === 0) {
+    listEl.innerHTML = people.length === 0
+      ? `<p class="empty">등록된 사람이 없습니다. 고객추가 버튼으로 첫 카드를 만들어보세요.</p>`
+      : `<p class="empty">표시할 고객이 없습니다.</p>`;
     return;
   }
 
-  people
+  displayList
     .slice()
     .sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt))
     .forEach((person) => {
@@ -497,8 +533,9 @@ function renderList() {
       const isChecked = selectedDeleteIds.has(person.id);
       const isActive = selectedPersonId === person.id;
       const koreanAge = calculateKoreanAge(person.birthDate);
+      const isHidden = !!person.hidden;
 
-      card.className = `person-card${isActive ? " active" : ""}`;
+      card.className = `person-card${isActive ? " active" : ""}${isHidden ? " hidden-person" : ""}`;
       card.innerHTML = `
         <div class="person-card-top">
           <div class="person-title-wrap">
@@ -507,7 +544,7 @@ function renderList() {
                 ? `<label class="select-box"><input type="checkbox" data-action="select"${isChecked ? " checked" : ""} /><span>선택</span></label>`
                 : ""
             }
-            <button type="button" class="person-name-button" data-action="toggle">${escapeHtml(person.name)}</button>
+            <button type="button" class="person-name-button" data-action="toggle">${escapeHtml(person.name)}${isHidden ? ' <span class="hidden-badge">숨김</span>' : ""}</button>
           </div>
           <div class="sub">${escapeHtml(person.gender || "-")} · ${escapeHtml(koreanAge ? `${koreanAge}세` : "-")}</div>
           <div class="sub">${escapeHtml(person.phone || "전화번호 없음")}</div>
@@ -563,7 +600,10 @@ function renderDetailPanel() {
         <h3>${escapeHtml(person.name)}</h3>
         <p class="sub">${escapeHtml(person.gender || "-")} · ${escapeHtml(koreanAge ? `${koreanAge}세` : "-")}</p>
       </div>
-      <button type="button" id="closeDetailButton" class="secondary-button detail-close">닫기</button>
+      <div class="detail-hero-actions">
+        <button type="button" id="toggleHidePersonButton" class="secondary-button detail-close">${person.hidden ? "숨김 해제" : "숨기기"}</button>
+        <button type="button" id="closeDetailButton" class="secondary-button detail-close">닫기</button>
+      </div>
     </div>
 
     <div class="detail-grid large">
@@ -658,6 +698,10 @@ function renderDetailPanel() {
       </div>
     </div>
   `;
+
+  content.querySelector("#toggleHidePersonButton")?.addEventListener("click", () => {
+    toggleHidePerson(person.id);
+  });
 
   content.querySelector("#closeDetailButton")?.addEventListener("click", () => {
     closeDetailSheet();
