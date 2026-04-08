@@ -5,42 +5,47 @@
 }
 
 :root {
-  --text: #18181b;
-  --text-sub: #3f3f46;
-  --muted: #71717a;
-  --muted-light: #a1a1aa;
-  --line: #e4e4e7;
-  --line-soft: #f0eeeb;
-  --accent: #4f46e5;
-  --accent-hover: #4338ca;
-  --accent-soft: #eef2ff;
-  --accent-text: #3730a3;
+  --bg: #f0f7f5;
+  --surface: #ffffff;
+  --surface-soft: #f5fbf9;
+  --line: #c8dfd9;
+  --line-strong: #9ec8bf;
+  --text: #132120;
+  --text-sub: #2c4442;
+  --muted: #4d7b76;
+  --muted-light: #8aadaa;
+  --brand: #0d9488;
+  --brand-strong: #0f766e;
+  --brand-soft: #ccfbf1;
+  --brand-soft-text: #0f766e;
+  --accent-bg: #fff8ed;
+  --accent-line: #f0d9a8;
   --panel-bg: #ffffff;
-  --surface: #fafaf9;
   --danger: #dc2626;
   --danger-soft: #fef2f2;
-  --success: #16a34a;
-  --success-soft: #f0fdf4;
 }
 
 body {
   margin: 0;
-  font-family: 'Noto Sans KR', 'Segoe UI', sans-serif;
-  background: linear-gradient(160deg, #f5f3ef 0%, #eeeae3 50%, #f5f3ef 100%);
-  background-attachment: fixed;
   color: var(--text);
-  line-height: 1.6;
+  font-family: 'Noto Sans KR', 'Segoe UI', sans-serif;
+  background:
+    radial-gradient(circle at top left, rgba(13, 148, 136, 0.14), transparent 32%),
+    radial-gradient(circle at bottom right, rgba(15, 118, 110, 0.08), transparent 40%),
+    linear-gradient(180deg, #f4faf8 0%, var(--bg) 100%);
+  background-attachment: fixed;
   min-height: 100vh;
+  line-height: 1.6;
 }
 
-/* ?? ???덉씠?꾩썐 ?? */
+/* ── 앱 레이아웃 ── */
 .app {
   max-width: 980px;
   margin: 0 auto;
   padding: 24px 20px 60px;
 }
 
-/* ?? ?쒕뵫 ?붾㈃ ?? */
+/* ── 랜딩 화면 ── */
 .landing-screen {
   min-height: 100vh;
   display: grid;
@@ -50,60 +55,61 @@ body {
 
 .landing-card {
   width: min(540px, 100%);
-  padding: 40px 32px;
+  padding: 44px 36px;
   border-radius: 28px;
-  background: var(--panel-bg);
+  background: rgba(255, 255, 255, 0.94);
   border: 1px solid var(--line);
-  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.07), 0 4px 16px rgba(0, 0, 0, 0.04);
+  box-shadow: 0 20px 60px rgba(13, 148, 136, 0.1), 0 4px 16px rgba(0, 0, 0, 0.04);
+  backdrop-filter: blur(12px);
   text-align: center;
 }
 
 .landing-card.wide {
-  width: min(780px, 100%);
+  width: min(800px, 100%);
 }
 
 .landing-kicker {
-  margin: 0 0 12px;
-  color: var(--accent);
-  font-size: 12px;
-  font-weight: 600;
-  letter-spacing: 0.08em;
+  margin: 0 0 10px;
+  color: var(--brand);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
 }
 
 .landing-card h1 {
   margin: 0 0 10px;
-  font-size: 40px;
+  color: var(--brand-strong);
+  font-size: 2.4rem;
   font-weight: 700;
-  letter-spacing: -0.02em;
-  color: var(--text);
+  letter-spacing: -0.03em;
 }
 
 .landing-card > p {
   margin: 0;
   color: var(--muted);
-  font-size: 15px;
+  font-size: 0.95rem;
 }
 
 .landing-link {
   display: inline-block;
   margin-top: 28px;
-  padding: 14px 24px;
+  padding: 13px 26px;
   border-radius: 14px;
-  background: var(--accent);
+  background: var(--brand);
   color: #fff;
   text-decoration: none;
-  font-weight: 600;
-  font-size: 15px;
+  font-weight: 700;
+  font-size: 0.95rem;
   transition: background 0.15s, transform 0.15s;
 }
 
 .landing-link:hover {
-  background: var(--accent-hover);
+  background: var(--brand-strong);
   transform: translateY(-1px);
 }
 
-/* ?? ??洹몃━???? */
+/* ── 홈 그리드 ── */
 .home-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -115,8 +121,8 @@ body {
   display: grid;
   gap: 6px;
   padding: 22px 18px;
-  border-radius: 20px;
-  background: var(--surface);
+  border-radius: 18px;
+  background: linear-gradient(180deg, #fff 0%, #f5fbf9 100%);
   border: 1px solid var(--line);
   color: var(--text);
   text-decoration: none;
@@ -125,26 +131,27 @@ body {
 }
 
 .home-card:hover {
-  box-shadow: 0 8px 24px rgba(79, 70, 229, 0.1);
-  border-color: #c7d2fe;
+  box-shadow: 0 8px 28px rgba(13, 148, 136, 0.14);
+  border-color: var(--line-strong);
   transform: translateY(-2px);
 }
 
 .home-card strong {
-  font-size: 16px;
+  font-size: 1rem;
   font-weight: 700;
-  color: var(--text);
+  color: var(--brand-strong);
 }
 
 .home-card span {
   color: var(--muted);
-  font-size: 13px;
-  font-weight: 400;
+  font-size: 0.85rem;
 }
 
-/* ?? ?섏씠吏 ?ㅻ뜑 ?? */
+/* ── 페이지 헤더 ── */
 .page-header {
-  margin-bottom: 24px;
+  margin-bottom: 20px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--line);
 }
 
 .page-title-row {
@@ -156,91 +163,102 @@ body {
 
 .page-title {
   margin: 0;
-  font-size: 30px;
+  color: var(--brand-strong);
+  font-size: 1.8rem;
   font-weight: 700;
-  letter-spacing: -0.02em;
+  letter-spacing: -0.03em;
 }
 
 .page-desc {
   margin: 4px 0 0;
   color: var(--muted);
-  font-size: 14px;
+  font-size: 0.88rem;
 }
 
-/* ?? ?ㅻ퉬寃뚯씠???? */
+/* ── 네비게이션 ── */
 .page-nav {
   display: flex;
-  gap: 4px;
+  gap: 6px;
   flex-wrap: wrap;
-  margin-bottom: 16px;
+  overflow-x: auto;
+  padding-bottom: 12px;
+  margin-bottom: 12px;
 }
 
 .nav-link {
+  flex: 0 0 auto;
   display: inline-flex;
   align-items: center;
-  padding: 6px 14px;
+  padding: 8px 16px;
+  border: 1px solid var(--line);
   border-radius: 999px;
+  background: var(--surface);
   color: var(--muted);
   text-decoration: none;
-  font-size: 13px;
-  font-weight: 500;
-  transition: background 0.12s, color 0.12s;
+  font-size: 0.88rem;
+  font-weight: 600;
+  transition: background 0.12s, color 0.12s, border-color 0.12s;
 }
 
 .nav-link:hover {
-  background: var(--line-soft);
+  background: var(--surface-soft);
   color: var(--text-sub);
+  border-color: var(--line-strong);
 }
 
 .nav-link.current {
-  background: var(--accent-soft);
-  color: var(--accent-text);
-  font-weight: 700;
+  border-color: var(--brand);
+  background: var(--brand);
+  color: #fff;
 }
 
-/* ?댁쟾 back-link ?대옒???섏쐞 ?명솚 */
+/* 하위 호환 */
 .back-link {
+  flex: 0 0 auto;
   display: inline-flex;
   align-items: center;
-  padding: 6px 14px;
+  padding: 8px 16px;
+  border: 1px solid var(--line);
   border-radius: 999px;
+  background: var(--surface);
   color: var(--muted);
   text-decoration: none;
-  font-size: 13px;
-  font-weight: 500;
-  transition: background 0.12s, color 0.12s;
+  font-size: 0.88rem;
+  font-weight: 600;
+  transition: background 0.12s, color 0.12s, border-color 0.12s;
 }
 
 .back-link:hover {
-  background: var(--line-soft);
+  background: var(--surface-soft);
   color: var(--text-sub);
+  border-color: var(--line-strong);
 }
 
 .back-link.current {
-  background: var(--accent-soft);
-  color: var(--accent-text);
-  font-weight: 700;
+  border-color: var(--brand);
+  background: var(--brand);
+  color: #fff;
 }
 
-/* ?? ?⑤꼸 ?? */
+/* ── 패널 ── */
 .container {
   display: grid;
   gap: 16px;
 }
 
 .panel {
-  background: var(--panel-bg);
+  background: var(--surface);
   border: 1px solid var(--line);
   border-radius: 20px;
   padding: 20px;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
+  box-shadow: 0 2px 14px rgba(13, 148, 136, 0.06);
 }
 
 .panel h2 {
   margin: 0 0 16px;
-  font-size: 17px;
+  color: var(--brand-strong);
+  font-size: 1rem;
   font-weight: 700;
-  color: var(--text);
 }
 
 .panel-header {
@@ -262,7 +280,7 @@ body {
   flex-wrap: wrap;
 }
 
-/* ?? ?띿뒪???좏떥 ?? */
+/* ── 텍스트 유틸 ── */
 .panel-count,
 .field-label,
 .help-text,
@@ -281,38 +299,38 @@ body {
 .note-date,
 .preview-text,
 .empty {
-  font-size: 14px;
+  font-size: 0.88rem;
 }
 
 .field-label,
 .detail-label {
-  font-size: 12px;
-  font-weight: 600;
-  letter-spacing: 0.02em;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
   text-transform: uppercase;
 }
 
 .section-title {
-  font-size: 12px;
+  font-size: 0.75rem;
   font-weight: 700;
   color: var(--muted);
-  letter-spacing: 0.05em;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
   margin-bottom: 4px;
 }
 
-/* ?? ???붿냼 ?? */
+/* ── 폼 요소 ── */
 .backup-actions,
 form {
   display: grid;
-  gap: 12px;
+  gap: 10px;
 }
 
 .inline-fields,
 .form-actions {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 12px;
+  gap: 10px;
 }
 
 input,
@@ -320,17 +338,17 @@ textarea,
 select,
 button {
   width: 100%;
-  font-size: 15px;
+  font-size: 0.95rem;
   font-family: inherit;
 }
 
 input,
 textarea,
 select {
-  padding: 12px 14px;
-  border: 1.5px solid var(--line);
+  padding: 11px 13px;
+  border: 1px solid var(--line-strong);
   border-radius: 12px;
-  background: var(--surface);
+  background: #fff;
   color: var(--text);
   transition: border-color 0.15s, box-shadow 0.15s;
   outline: none;
@@ -339,15 +357,15 @@ select {
 input:focus,
 textarea:focus,
 select:focus {
-  border-color: var(--accent);
-  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+  border-color: var(--brand);
+  box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.12);
   background: #fff;
 }
 
 input[readonly] {
-  background: #f4f4f5;
+  background: var(--surface-soft);
   color: var(--muted);
-  border-color: var(--line-soft);
+  border-color: var(--line);
 }
 
 textarea {
@@ -356,23 +374,22 @@ textarea {
   line-height: 1.6;
 }
 
-/* ?? 踰꾪듉 ?? */
+/* ── 버튼 ── */
 button {
   padding: 12px 16px;
   border: none;
   border-radius: 12px;
-  background: var(--accent);
+  background: var(--brand);
   color: white;
   cursor: pointer;
-  font-weight: 600;
+  font-weight: 700;
   transition: background 0.15s, transform 0.12s, box-shadow 0.15s;
-  letter-spacing: 0.01em;
 }
 
 button:hover {
-  background: var(--accent-hover);
+  background: var(--brand-strong);
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(79, 70, 229, 0.2);
+  box-shadow: 0 4px 14px rgba(13, 148, 136, 0.25);
 }
 
 button:active {
@@ -383,19 +400,19 @@ button:active {
   width: auto;
   min-width: 88px;
   padding: 9px 14px;
-  font-size: 13px;
+  font-size: 0.85rem;
 }
 
 .secondary-button {
-  background: var(--line-soft);
-  color: var(--text-sub);
-  border: 1.5px solid var(--line);
+  background: #fff;
+  color: var(--brand-strong);
+  border: 1px solid var(--line-strong);
 }
 
 .secondary-button:hover {
-  background: #e4e4e7;
+  background: var(--surface-soft);
   box-shadow: none;
-  color: var(--text);
+  color: var(--brand-strong);
 }
 
 .danger-button {
@@ -407,7 +424,7 @@ button:active {
   box-shadow: 0 4px 12px rgba(220, 38, 38, 0.25);
 }
 
-/* ?? 怨좉컼 紐⑸줉 ?? */
+/* ── 고객 목록 ── */
 .person-list {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -415,26 +432,27 @@ button:active {
 }
 
 .person-card {
-  border: 1.5px solid var(--line);
+  border: 1px solid var(--line);
   border-radius: 16px;
   padding: 16px;
-  background: var(--panel-bg);
+  background: linear-gradient(180deg, #ffffff 0%, #f5fbf9 100%);
   transition: border-color 0.15s, box-shadow 0.15s;
 }
 
 .person-card:hover {
-  border-color: #c7d2fe;
-  box-shadow: 0 4px 16px rgba(79, 70, 229, 0.07);
+  border-color: var(--line-strong);
+  box-shadow: 0 4px 18px rgba(13, 148, 136, 0.1);
 }
 
 .person-card.active {
-  border-color: var(--accent);
-  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.12);
+  border-color: var(--brand);
+  box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.14);
+  background: linear-gradient(180deg, #f5fbf9 0%, #e8f7f4 100%);
 }
 
 .person-card-top {
   display: grid;
-  gap: 5px;
+  gap: 4px;
 }
 
 .person-title-wrap {
@@ -448,8 +466,8 @@ button:active {
   padding: 0;
   border: none;
   background: transparent;
-  color: var(--text);
-  font-size: 17px;
+  color: var(--brand-strong);
+  font-size: 1rem;
   font-weight: 700;
   text-align: left;
   letter-spacing: -0.01em;
@@ -457,8 +475,7 @@ button:active {
 }
 
 .person-name-button:hover {
-  color: var(--accent);
-  text-decoration: none;
+  color: var(--brand);
   background: transparent;
   transform: none;
   box-shadow: none;
@@ -469,14 +486,14 @@ button:active {
   align-items: center;
   gap: 6px;
   color: var(--muted);
-  font-size: 13px;
+  font-size: 0.85rem;
 }
 
 .select-box input {
   width: auto;
 }
 
-/* ?? ?곸꽭 蹂닿린 ?? */
+/* ── 상세 보기 ── */
 .detail-hero {
   display: flex;
   justify-content: space-between;
@@ -487,7 +504,8 @@ button:active {
 
 .detail-hero h3 {
   margin: 0 0 4px;
-  font-size: 26px;
+  color: var(--brand-strong);
+  font-size: 1.6rem;
   font-weight: 700;
   letter-spacing: -0.02em;
 }
@@ -496,13 +514,13 @@ button:active {
   width: auto;
   min-width: 80px;
   padding: 9px 16px;
-  font-size: 13px;
+  font-size: 0.85rem;
 }
 
 .detail-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
+  gap: 10px;
 }
 
 .detail-grid.large {
@@ -511,8 +529,8 @@ button:active {
 }
 
 .detail-grid > div {
-  background: var(--surface);
-  border: 1px solid var(--line-soft);
+  background: var(--surface-soft);
+  border: 1px solid var(--line);
   border-radius: 12px;
   padding: 12px 14px;
 }
@@ -520,7 +538,7 @@ button:active {
 .detail-grid strong {
   display: block;
   margin-top: 4px;
-  font-size: 15px;
+  font-size: 0.95rem;
   font-weight: 600;
   color: var(--text);
 }
@@ -530,15 +548,15 @@ button:active {
   gap: 16px;
   flex-wrap: wrap;
   color: var(--muted-light);
-  font-size: 12px;
+  font-size: 0.78rem;
   margin-bottom: 4px;
 }
 
 .detail-edit-section h4 {
-  margin: 0 0 14px;
-  font-size: 15px;
+  margin: 0 0 12px;
+  font-size: 0.93rem;
   font-weight: 700;
-  color: var(--text-sub);
+  color: var(--brand-strong);
 }
 
 .detail-note-editor {
@@ -560,7 +578,7 @@ button:active {
   grid-column: 1 / -1;
 }
 
-/* ?? ?쒓렇 ?? */
+/* ── 태그 ── */
 .tags {
   display: flex;
   flex-wrap: wrap;
@@ -572,31 +590,32 @@ button:active {
   display: inline-block;
   padding: 3px 10px;
   border-radius: 999px;
-  background: var(--accent-soft);
-  color: var(--accent-text);
-  font-size: 12px;
-  font-weight: 500;
+  background: var(--brand-soft);
+  color: var(--brand-soft-text);
+  font-size: 0.78rem;
+  font-weight: 600;
 }
 
-/* ?? ?명듃 ?? */
+/* ── 노트 ── */
 .notes-section h4 {
-  margin: 0 0 2px;
-  font-size: 15px;
+  margin: 0 0 4px;
+  font-size: 0.93rem;
   font-weight: 700;
-  color: var(--text-sub);
+  color: var(--brand-strong);
 }
 
 .note-item {
   padding: 14px 16px;
-  border: 1.5px solid var(--line);
+  border: 1px solid var(--line);
   border-radius: 14px;
   margin-top: 10px;
-  background: var(--panel-bg);
-  transition: border-color 0.15s;
+  background: var(--surface);
+  transition: border-color 0.15s, box-shadow 0.15s;
 }
 
 .note-item:hover {
-  border-color: #c7d2fe;
+  border-color: var(--line-strong);
+  box-shadow: 0 2px 10px rgba(13, 148, 136, 0.08);
 }
 
 .note-head {
@@ -608,66 +627,69 @@ button:active {
 }
 
 .note-date {
-  font-size: 13px;
+  font-size: 0.82rem;
   color: var(--muted);
-  font-weight: 500;
+  font-weight: 600;
 }
 
 .mini-button {
   width: auto;
-  min-width: 56px;
-  padding: 6px 12px;
-  font-size: 12px;
-  background: var(--line-soft);
-  color: var(--text-sub);
-  border: 1.5px solid var(--line);
+  min-width: 52px;
+  padding: 5px 12px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  background: #fff;
+  color: var(--brand-strong);
+  border: 1px solid var(--line-strong);
   box-shadow: none;
 }
 
 .mini-button:hover {
-  background: var(--accent-soft);
-  color: var(--accent-text);
-  border-color: #c7d2fe;
+  background: var(--brand-soft);
+  color: var(--brand-soft-text);
+  border-color: var(--brand);
   box-shadow: none;
+  transform: none;
 }
 
 .note-text {
   line-height: 1.65;
-  font-size: 15px;
+  font-size: 0.93rem;
   color: var(--text-sub);
   white-space: pre-wrap;
 }
 
-/* ?? ?ㅼ젙/媛꾨떒 紐⑸줉 ?? */
+/* ── 설정/간단 목록 ── */
 .simple-list {
   display: grid;
   gap: 8px;
 }
 
 .simple-item {
-  padding: 14px 16px;
-  border: 1px solid var(--line-soft);
+  padding: 13px 16px;
+  border: 1px solid var(--line);
   border-radius: 14px;
-  background: var(--surface);
-  font-size: 14px;
+  background: var(--surface-soft);
+  font-size: 0.9rem;
   color: var(--text-sub);
 }
 
-/* ?? hr 援щ텇???? */
+/* ── 구분선 ── */
 hr {
   border: none;
   border-top: 1px solid var(--line);
   margin: 20px 0;
 }
 
-/* ?? 鍮??곹깭 ?? */
+/* ── 빈 상태 ── */
 .empty {
   text-align: center;
-  padding: 32px 0;
-  font-size: 14px;
+  padding: 36px 0;
+  font-size: 0.9rem;
+  color: var(--muted);
 }
 
-/* ?? 諛섏쓳???? */
+/* ── 반응형 ── */
 @media (max-width: 720px) {
   .app {
     padding: 16px 14px 48px;
@@ -695,11 +717,10 @@ hr {
   }
 
   .page-title {
-    font-size: 24px;
+    font-size: 1.4rem;
   }
 
   .landing-card h1 {
-    font-size: 30px;
-
+    font-size: 1.8rem;
   }
 }
