@@ -853,6 +853,30 @@ body.sheet-open {
 }
 
 /* ── 숨김 고객 ── */
+.secret-toggle {
+  display: inline-block;
+  width: 28px;
+  height: 28px;
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  padding: 0;
+  margin-left: 4px;
+  vertical-align: middle;
+  cursor: default;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+.secret-toggle:hover,
+.secret-toggle:focus,
+.secret-toggle:active {
+  background: transparent;
+  box-shadow: none;
+  outline: none;
+  transform: none;
+}
+
 .person-card.hidden-person {
   opacity: 0.45;
 }

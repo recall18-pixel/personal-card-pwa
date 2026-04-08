@@ -507,14 +507,7 @@ function renderList() {
   const displayList = showHidden ? people : visiblePeople;
 
   if (countEl) {
-    if (hiddenPeople.length > 0) {
-      countEl.innerHTML = showHidden
-        ? `전체 ${people.length}명 &nbsp;<button type="button" class="count-link" id="toggleHiddenInCount">숨김 감추기</button>`
-        : `전체 ${visiblePeople.length}명 &middot; <button type="button" class="count-link" id="toggleHiddenInCount">숨김 ${hiddenPeople.length}명</button>`;
-      document.getElementById("toggleHiddenInCount")?.addEventListener("click", toggleShowHidden);
-    } else {
-      countEl.textContent = `전체 ${people.length}명`;
-    }
+    countEl.textContent = `전체 ${visiblePeople.length}명`;
   }
 
   if (displayList.length === 0) {
@@ -967,6 +960,26 @@ function bindSheetBackdrop() {
   });
 }
 
+function bindSecretHiddenToggle() {
+  const btn = document.getElementById("secretHiddenToggle");
+  if (!btn) return;
+
+  let clickCount = 0;
+  let timer = null;
+
+  btn.addEventListener("click", () => {
+    clickCount++;
+    clearTimeout(timer);
+    timer = setTimeout(() => { clickCount = 0; }, 800);
+
+    if (clickCount >= 3) {
+      clickCount = 0;
+      clearTimeout(timer);
+      toggleShowHidden();
+    }
+  });
+}
+
 function init() {
   bindDataControls();
   bindImportFile();
@@ -976,6 +989,7 @@ function init() {
   bindFormKeyboard();
   bindForm();
   bindSheetBackdrop();
+  bindSecretHiddenToggle();
   updateDeleteToolbar();
   renderList();
   closeForm();
