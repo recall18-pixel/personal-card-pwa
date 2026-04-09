@@ -94,16 +94,17 @@
         const row = document.createElement("div");
         row.className = `tdl-item${item.done ? " tdl-done" : ""}`;
         row.innerHTML = `
-          <label class="tdl-label">
-            <input type="checkbox" class="tdl-check" data-id="${escHtml(item.id)}" ${item.done ? "checked" : ""} />
-            <span class="tdl-text">${escHtml(item.text)}</span>
-          </label>
+          <input type="checkbox" class="tdl-check" data-id="${escHtml(item.id)}" ${item.done ? "checked" : ""} />
+          <span class="tdl-text">${escHtml(item.text)}</span>
           <button type="button" class="tdl-del-btn" data-id="${escHtml(item.id)}" title="삭제">✕</button>
         `;
 
         row.querySelector(".tdl-check").addEventListener("change", (e) => {
           const target = items.find(i => i.id === item.id);
           if (target) { target.done = e.target.checked; save(items); render(); }
+        });
+        row.querySelector(".tdl-text").addEventListener("click", () => {
+          row.querySelector(".tdl-check").click();
         });
 
         row.querySelector(".tdl-del-btn").addEventListener("click", () => {

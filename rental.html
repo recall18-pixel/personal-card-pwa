@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="ko">
 <head>
   <meta charset="UTF-8" />
@@ -23,123 +23,174 @@
       <div class="page-title-row">
         <div>
           <h1 class="page-title">임대관리</h1>
-          <p class="page-desc">임대 물건과 관련 정보를 관리합니다.</p>
+          <p class="page-desc" id="breadcrumb">임대 물건과 호실을 관리합니다.</p>
         </div>
       </div>
     </header>
 
     <main class="container">
 
-      <!-- ── 물건 목록 뷰 ── -->
-      <div id="rentalListView">
+      <!-- ══ View 1: 물건 목록 ══ -->
+      <div id="vProps">
         <section class="panel">
           <div class="panel-header">
             <h2>임대 물건 목록</h2>
-            <button type="button" id="showAddRentalBtn" class="toolbar-button">+ 물건 추가</button>
+            <button type="button" id="btnShowAddProp" class="toolbar-button">+ 물건 추가</button>
           </div>
-
-          <div id="addRentalForm" class="project-add-form" hidden>
-            <input type="text" id="newRentalName" placeholder="물건명 (예: 서울 강남 오피스텔)" maxlength="60"
+          <div id="addPropForm" class="project-add-form" hidden>
+            <input type="text" id="newPropName" placeholder="물건명 (예: 조용한집1)" maxlength="60"
+              lang="ko" autocapitalize="off" autocorrect="off" spellcheck="false" />
+            <select id="newPropType">
+              <option value="">유형 선택</option>
+              <option>다가구주택</option>
+              <option>다세대주택</option>
+              <option>아파트</option>
+              <option>오피스텔</option>
+              <option>빌라/연립</option>
+              <option>단독주택</option>
+              <option>상가</option>
+              <option>사무실</option>
+              <option>기타</option>
+            </select>
+            <input type="text" id="newPropAddress" placeholder="주소 (선택)" maxlength="100"
               lang="ko" autocapitalize="off" autocorrect="off" spellcheck="false" />
             <div class="form-actions" style="margin-top:8px">
-              <button type="button" id="saveRentalBtn">추가</button>
-              <button type="button" id="cancelRentalBtn" class="secondary-button">취소</button>
+              <button type="button" id="btnSaveProp">추가</button>
+              <button type="button" id="btnCancelProp" class="secondary-button">취소</button>
             </div>
           </div>
-
-          <div id="rentalList" class="project-list"></div>
+          <div id="propList" class="project-list"></div>
         </section>
       </div>
 
-      <!-- ── 물건 상세 뷰 ── -->
-      <div id="rentalDetailView" hidden>
+      <!-- ══ View 2: 호실 목록 ══ -->
+      <div id="vRooms" hidden>
         <section class="panel">
           <div class="panel-header">
-            <h2 id="rentalDetailTitle"></h2>
+            <h2 id="propTitle"></h2>
+            <div style="display:flex;gap:6px;flex-wrap:wrap">
+              <button type="button" id="btnAddRoom" class="toolbar-button">+ 호실</button>
+              <button type="button" id="btnDelProp" class="danger-button toolbar-button">물건삭제</button>
+              <button type="button" id="btnBackToProps" class="secondary-button toolbar-button">← 목록</button>
+            </div>
+          </div>
+          <p id="propMeta" class="help-text"></p>
+          <div id="reportBox" class="report-summary"></div>
+          <div id="roomGrid" class="room-grid"></div>
+          <div id="addRoomForm" class="project-add-form" hidden style="margin-top:12px">
+            <input type="text" id="newRoomName" placeholder="호실명 (예: 201호)" maxlength="30"
+              lang="ko" autocapitalize="off" autocorrect="off" spellcheck="false" />
+            <div class="form-actions" style="margin-top:8px">
+              <button type="button" id="btnSaveRoom">추가</button>
+              <button type="button" id="btnCancelRoom" class="secondary-button">취소</button>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <!-- ══ View 3: 호실 상세 ══ -->
+      <div id="vRoomDetail" hidden>
+        <section class="panel">
+          <div class="panel-header">
+            <h2 id="roomDetailTitle"></h2>
             <div style="display:flex;gap:6px">
-              <button type="button" id="deleteRentalBtn" class="danger-button toolbar-button">삭제</button>
-              <button type="button" id="backToRentalListBtn" class="secondary-button toolbar-button">← 목록</button>
+              <button type="button" id="btnDelRoom" class="danger-button toolbar-button">호실삭제</button>
+              <button type="button" id="btnBackToRooms" class="secondary-button toolbar-button">← 호실목록</button>
             </div>
           </div>
 
-          <!-- 하위 탭 -->
-          <nav class="sub-tab-nav" id="rentalSubTabNav">
-            <button type="button" class="sub-tab active" data-tab="info">물건정보</button>
-            <button type="button" class="sub-tab" data-tab="visit">방문일지</button>
+          <nav class="sub-tab-nav" id="roomTabNav">
+            <button type="button" class="sub-tab active" data-tab="contract">계약정보</button>
+            <button type="button" class="sub-tab" data-tab="payment">납부내역</button>
             <button type="button" class="sub-tab" data-tab="memo">메모</button>
           </nav>
 
-          <!-- 물건정보 탭 -->
-          <div id="rentalTab-info" class="sub-tab-content">
+          <!-- 계약정보 탭 -->
+          <div id="rTab-contract" class="sub-tab-content">
             <div class="rental-info-form">
               <div class="rental-field">
-                <label>주소</label>
-                <input type="text" id="rfAddress" placeholder="주소 입력"
+                <label>계약 유형</label>
+                <select id="rc-ctype">
+                  <option value="">선택</option>
+                  <option>월세</option>
+                  <option>전세</option>
+                  <option>반전세</option>
+                  <option>공실</option>
+                </select>
+              </div>
+              <div class="rental-field">
+                <label>임차인명</label>
+                <input type="text" id="rc-tenant" placeholder="홍길동"
                   lang="ko" autocapitalize="off" autocorrect="off" spellcheck="false" />
               </div>
               <div class="rental-field">
-                <label>유형</label>
-                <select id="rfType">
-                  <option value="">선택</option>
-                  <option>아파트</option>
-                  <option>오피스텔</option>
-                  <option>빌라/연립</option>
-                  <option>단독주택</option>
-                  <option>상가</option>
-                  <option>사무실</option>
-                  <option>기타</option>
-                </select>
-              </div>
-              <div class="rental-field">
                 <label>보증금</label>
-                <input type="text" id="rfDeposit" placeholder="예: 5,000만원"
+                <input type="text" id="rc-deposit" placeholder="예: 500만원"
                   lang="ko" autocorrect="off" spellcheck="false" />
               </div>
               <div class="rental-field">
-                <label>월세/관리비</label>
-                <input type="text" id="rfMonthly" placeholder="예: 50만원 / 5만원"
+                <label>월세</label>
+                <input type="text" id="rc-monthly" placeholder="예: 40만원"
                   lang="ko" autocorrect="off" spellcheck="false" />
               </div>
               <div class="rental-field">
-                <label>계약 상태</label>
-                <select id="rfStatus">
-                  <option value="">선택</option>
-                  <option>공실</option>
-                  <option>임대중</option>
-                  <option>계약예정</option>
-                  <option>매물등록</option>
-                </select>
+                <label>매월 납부일</label>
+                <input type="text" id="rc-dueday" placeholder="예: 매월 5일"
+                  lang="ko" autocorrect="off" spellcheck="false" />
+              </div>
+              <div class="rental-field">
+                <label>계약 시작</label>
+                <input type="date" id="rc-start" />
+              </div>
+              <div class="rental-field">
+                <label>계약 종료</label>
+                <input type="date" id="rc-end" />
               </div>
               <div class="rental-field">
                 <label>특이사항</label>
-                <textarea id="rfNote" placeholder="특이사항 입력" rows="3"
+                <textarea id="rc-note" rows="3" placeholder="기타 계약 내용"
                   lang="ko" autocapitalize="off" autocorrect="off" spellcheck="false"></textarea>
               </div>
             </div>
             <div class="detail-action-row">
-              <button type="button" id="saveRentalInfoBtn">저장</button>
+              <button type="button" id="btnSaveContract">저장</button>
             </div>
           </div>
 
-          <!-- 방문일지 탭 -->
-          <div id="rentalTab-visit" class="sub-tab-content" hidden>
-            <div id="rentalVisitList" class="project-notes-list" style="margin-bottom:.8rem"></div>
-            <textarea id="rentalVisitInput" placeholder="방문 내용, 상담 내용 등을 입력하세요" rows="3"
-              lang="ko" autocapitalize="off" autocorrect="off" spellcheck="false"
-              style="width:100%;font-size:.9rem;padding:.55rem .75rem;border:1.5px solid var(--border);border-radius:.5rem;font-family:inherit;box-sizing:border-box;resize:vertical"></textarea>
-            <div class="detail-action-row" style="margin-top:.4rem">
-              <button type="button" id="addVisitBtn">기록 추가</button>
+          <!-- 납부내역 탭 -->
+          <div id="rTab-payment" class="sub-tab-content" hidden>
+            <div class="payment-add-form">
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:.5rem">
+                <div class="rental-field">
+                  <label>납부 월</label>
+                  <input type="month" id="pay-month" />
+                </div>
+                <div class="rental-field">
+                  <label>금액</label>
+                  <input type="text" id="pay-amount" placeholder="예: 40만원"
+                    lang="ko" autocorrect="off" spellcheck="false" />
+                </div>
+              </div>
+              <div class="rental-field" style="margin-top:.4rem">
+                <label>메모</label>
+                <input type="text" id="pay-note" placeholder="자동이체, 현금납부 등"
+                  lang="ko" autocorrect="off" spellcheck="false" />
+              </div>
+              <div class="detail-action-row" style="margin-top:.5rem">
+                <button type="button" id="btnAddPayment">납부 기록 추가</button>
+              </div>
             </div>
+            <div id="paymentList" class="payment-list"></div>
           </div>
 
           <!-- 메모 탭 -->
-          <div id="rentalTab-memo" class="sub-tab-content" hidden>
-            <div id="rentalMemoList" class="project-notes-list" style="margin-bottom:.8rem"></div>
-            <textarea id="rentalMemoInput" placeholder="자유롭게 메모하세요" rows="3"
+          <div id="rTab-memo" class="sub-tab-content" hidden>
+            <div id="roomMemoList" class="project-notes-list" style="margin-bottom:.8rem"></div>
+            <textarea id="roomMemoInput" rows="3" placeholder="자유롭게 메모하세요"
               lang="ko" autocapitalize="off" autocorrect="off" spellcheck="false"
               style="width:100%;font-size:.9rem;padding:.55rem .75rem;border:1.5px solid var(--border);border-radius:.5rem;font-family:inherit;box-sizing:border-box;resize:vertical"></textarea>
             <div class="detail-action-row" style="margin-top:.4rem">
-              <button type="button" id="addMemoBtn">메모 추가</button>
+              <button type="button" id="btnAddRoomMemo">메모 추가</button>
             </div>
           </div>
 
@@ -152,204 +203,377 @@
   <script src="common.js"></script>
   <script>
   (function () {
-    const STORAGE_KEY = "rentals_v1";
+    const KEY = "rentals_v1";
 
     function load() {
-      try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]"); }
-      catch { return []; }
+      try { return JSON.parse(localStorage.getItem(KEY) || "[]"); } catch { return []; }
     }
-    function save(data) { localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); }
+    function save(data) { localStorage.setItem(KEY, JSON.stringify(data)); }
 
-    function escHtml(v) {
+    function esc(v) {
       return String(v).replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;");
     }
-
-    function formatNow() {
+    function now() {
       const d = new Date();
       return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")} ${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")}`;
     }
+    function fmtMonth(ym) {
+      if (!ym) return "";
+      const [y, m] = ym.split("-");
+      return `${y}년 ${m}월`;
+    }
 
-    let rentals = load();
-    let currentId = null;
-    let activeTab = "info";
+    // 구버전 데이터 마이그레이션 (info/visit/memo → rooms 구조)
+    let props = load().map(p => {
+      if (!Array.isArray(p.rooms)) {
+        p.type    = p.info?.type    || p.type    || "";
+        p.address = p.info?.address || p.address || "";
+        p.rooms   = [];
+      }
+      return p;
+    });
 
-    // ── 목록 렌더 ──
-    function renderList() {
-      const el = document.getElementById("rentalList");
+    let curPropId = null;
+    let curRoomId = null;
+
+    // ── 뷰 전환 ──
+    function showView(v) {
+      document.getElementById("vProps").hidden      = v !== "props";
+      document.getElementById("vRooms").hidden      = v !== "rooms";
+      document.getElementById("vRoomDetail").hidden = v !== "roomDetail";
+    }
+
+    // ── 물건 목록 ──
+    function renderProps() {
+      const el = document.getElementById("propList");
       if (!el) return;
-      if (rentals.length === 0) {
+      if (props.length === 0) {
         el.innerHTML = `<p class="empty">임대 물건이 없습니다. 위에서 추가해보세요.</p>`;
         return;
       }
       el.innerHTML = "";
-      rentals.slice().reverse().forEach(item => {
+      props.forEach(p => {
+        const rooms    = p.rooms || [];
+        const occupied = rooms.filter(r => r.contract?.ctype && r.contract.ctype !== "공실" && r.contract.ctype !== "").length;
         const card = document.createElement("div");
         card.className = "project-card";
-        const statusLabel = item.info?.status ? ` · ${escHtml(item.info.status)}` : "";
         card.innerHTML = `
-          <button type="button" class="project-name-btn">${escHtml(item.name)}<span style="font-size:.8rem;font-weight:400;color:var(--text-light)">${statusLabel}</span></button>
-        `;
-        card.querySelector(".project-name-btn").addEventListener("click", () => openDetail(item.id));
+          <button type="button" class="project-name-btn">
+            ${esc(p.name)}
+            <span style="font-size:.78rem;font-weight:400;color:var(--text-light)">
+              ${p.type ? " · " + esc(p.type) : ""} · ${rooms.length}실 (입주 ${occupied})
+            </span>
+          </button>`;
+        card.querySelector(".project-name-btn").addEventListener("click", () => openProp(p.id));
         el.appendChild(card);
       });
     }
 
-    // ── 상세 열기 ──
-    function openDetail(id) {
-      currentId = id;
-      const item = rentals.find(r => r.id === id);
-      if (!item) return;
-      document.getElementById("rentalListView").hidden = true;
-      document.getElementById("rentalDetailView").hidden = false;
-      document.getElementById("rentalDetailTitle").textContent = item.name;
-      switchTab("info");
-      fillInfoForm(item);
+    // ── 물건 열기 ──
+    function openProp(id) {
+      curPropId = id;
+      const p = props.find(x => x.id === id);
+      if (!p) return;
+      document.getElementById("propTitle").textContent = p.name;
+      document.getElementById("propMeta").textContent =
+        [p.type, p.address].filter(Boolean).join(" · ") || "상세 정보 없음";
+      renderRoomGrid(p);
+      renderReport(p);
+      showView("rooms");
     }
 
-    function fillInfoForm(item) {
-      const info = item.info || {};
-      document.getElementById("rfAddress").value  = info.address  || "";
-      document.getElementById("rfType").value     = info.type     || "";
-      document.getElementById("rfDeposit").value  = info.deposit  || "";
-      document.getElementById("rfMonthly").value  = info.monthly  || "";
-      document.getElementById("rfStatus").value   = info.status   || "";
-      document.getElementById("rfNote").value     = info.note     || "";
-    }
-
-    // ── 탭 전환 ──
-    function switchTab(tab) {
-      activeTab = tab;
-      document.querySelectorAll(".sub-tab").forEach(btn => {
-        btn.classList.toggle("active", btn.dataset.tab === tab);
-      });
-      ["info","visit","memo"].forEach(t => {
-        document.getElementById(`rentalTab-${t}`).hidden = (t !== tab);
-      });
-      if (tab === "visit") renderNotesList("visit");
-      if (tab === "memo")  renderNotesList("memo");
-    }
-
-    // ── 방문일지/메모 렌더 ──
-    function renderNotesList(type) {
-      const item = rentals.find(r => r.id === currentId);
-      if (!item) return;
-      const notes = (item[type] || []);
-      const el = document.getElementById(`rentalTab-${type}`).querySelector(`#rental${type === "visit" ? "Visit" : "Memo"}List`);
+    // ── 호실 그리드 ──
+    function renderRoomGrid(p) {
+      const el = document.getElementById("roomGrid");
       if (!el) return;
-      if (notes.length === 0) {
-        el.innerHTML = `<p class="empty">아직 기록이 없습니다.</p>`;
+      const rooms = p.rooms || [];
+      if (rooms.length === 0) {
+        el.innerHTML = `<p class="empty">호실이 없습니다. 호실을 추가해보세요.</p>`;
         return;
       }
-      el.innerHTML = notes.slice().reverse().map((n, ri) => {
-        const realIdx = notes.length - 1 - ri;
-        return `<div style="padding:.4rem .25rem;display:flex;align-items:flex-start;gap:.5rem">
-          <div style="flex:1">
-            <div style="font-size:.75rem;color:var(--text-light)">${escHtml(n.date)}</div>
-            <div style="font-size:.9rem;line-height:1.6;word-break:break-all">${escHtml(n.content).replace(/\n/g,"<br>")}</div>
-          </div>
-          <button type="button" class="mini-button" data-del="${realIdx}" data-type="${type}">삭제</button>
-        </div>`;
+      el.innerHTML = rooms.map(r => {
+        const c = r.contract || {};
+        const vacant = !c.ctype || c.ctype === "공실" || c.ctype === "";
+        return `
+          <div class="room-card ${vacant ? "vacant" : "occupied"}" data-rid="${esc(r.id)}">
+            <div class="room-number">${esc(r.name)}</div>
+            <div class="room-status">${esc(c.ctype || "미설정")}</div>
+            <div class="room-tenant">${esc(c.tenant || "-")}</div>
+            <div class="room-monthly">${esc(c.monthly || "-")}</div>
+          </div>`;
+      }).join("");
+      el.querySelectorAll("[data-rid]").forEach(card => {
+        card.addEventListener("click", () => openRoom(card.dataset.rid));
+      });
+    }
+
+    // ── 수익 요약 ──
+    function renderReport(p) {
+      const el = document.getElementById("reportBox");
+      if (!el) return;
+      const rooms    = p.rooms || [];
+      const occupied = rooms.filter(r => r.contract?.ctype && r.contract.ctype !== "공실" && r.contract.ctype !== "");
+      let total = 0;
+      occupied.forEach(r => {
+        const s = (r.contract?.monthly || "").replace(/,/g, "");
+        const m = s.match(/[\d.]+/);
+        if (m) total += parseFloat(m[0]);
+      });
+      el.innerHTML = `<div class="report-row">
+        <span class="report-item"><span class="report-label">전체</span><span class="report-value">${rooms.length}실</span></span>
+        <span class="report-item"><span class="report-label">입주</span><span class="report-value">${occupied.length}실</span></span>
+        <span class="report-item"><span class="report-label">공실</span><span class="report-value">${rooms.length - occupied.length}실</span></span>
+        ${total > 0 ? `<span class="report-item"><span class="report-label">월세 합계</span><span class="report-value">${total.toLocaleString()}만원</span></span>` : ""}
+      </div>`;
+    }
+
+    // ── 호실 상세 ──
+    function openRoom(roomId) {
+      curRoomId = roomId;
+      const p    = props.find(x => x.id === curPropId);
+      const room = p?.rooms?.find(r => r.id === roomId);
+      if (!room) return;
+      document.getElementById("roomDetailTitle").textContent = `${p.name} ${room.name}`;
+      showView("roomDetail");
+      switchRoomTab("contract");
+    }
+
+    function switchRoomTab(tab) {
+      document.querySelectorAll("#roomTabNav .sub-tab").forEach(btn => {
+        btn.classList.toggle("active", btn.dataset.tab === tab);
+      });
+      ["contract","payment","memo"].forEach(t => {
+        document.getElementById(`rTab-${t}`).hidden = t !== tab;
+      });
+      const p    = props.find(x => x.id === curPropId);
+      const room = p?.rooms?.find(r => r.id === curRoomId);
+      if (!room) return;
+      if (tab === "contract") fillContract(room);
+      if (tab === "payment")  renderPayments(room);
+      if (tab === "memo")     renderRoomMemos(room);
+    }
+
+    function fillContract(room) {
+      const c = room.contract || {};
+      document.getElementById("rc-ctype").value   = c.ctype   || "";
+      document.getElementById("rc-tenant").value  = c.tenant  || "";
+      document.getElementById("rc-deposit").value = c.deposit || "";
+      document.getElementById("rc-monthly").value = c.monthly || "";
+      document.getElementById("rc-dueday").value  = c.dueday  || "";
+      document.getElementById("rc-start").value   = c.start   || "";
+      document.getElementById("rc-end").value     = c.end     || "";
+      document.getElementById("rc-note").value    = c.note    || "";
+    }
+
+    function renderPayments(room) {
+      const el = document.getElementById("paymentList");
+      if (!el) return;
+      const payments = room.payments || [];
+      if (payments.length === 0) {
+        el.innerHTML = `<p class="empty">납부 기록이 없습니다.</p>`;
+        return;
+      }
+      el.innerHTML = payments.slice().reverse().map((pay, ri) => {
+        const realIdx = payments.length - 1 - ri;
+        const pClass  = pay.paid ? "payment-paid" : "payment-unpaid";
+        return `
+          <div class="payment-item ${pClass}" data-idx="${realIdx}">
+            <div class="payment-main">
+              <div style="display:flex;align-items:center;gap:.5rem">
+                <input type="checkbox" class="pay-chk" style="width:1.15rem;min-width:1.15rem;height:1.15rem;accent-color:var(--brand);cursor:pointer;flex-shrink:0" data-idx="${realIdx}" ${pay.paid ? "checked" : ""} />
+                <span class="payment-month">${esc(fmtMonth(pay.month))}</span>
+                ${pay.amount ? `<span class="payment-amount">· ${esc(pay.amount)}</span>` : ""}
+              </div>
+              ${pay.note ? `<div class="payment-note">${esc(pay.note)}</div>` : ""}
+            </div>
+            <div style="display:flex;align-items:center;gap:.4rem;flex-shrink:0">
+              <span class="payment-badge ${pClass}">${pay.paid ? "납부완료" : "미납"}</span>
+              <button type="button" class="mini-button pay-del" data-idx="${realIdx}">삭제</button>
+            </div>
+          </div>`;
       }).join("");
 
-      el.querySelectorAll("[data-del]").forEach(btn => {
+      el.querySelectorAll(".pay-chk").forEach(chk => {
+        chk.addEventListener("change", e => {
+          const p = props.find(x => x.id === curPropId);
+          const r = p?.rooms?.find(r => r.id === curRoomId);
+          if (!r) return;
+          r.payments[Number(chk.dataset.idx)].paid = e.target.checked;
+          save(props);
+          renderPayments(r);
+        });
+      });
+      el.querySelectorAll(".pay-del").forEach(btn => {
         btn.addEventListener("click", () => {
-          const t = btn.dataset.type;
-          const idx = Number(btn.dataset.del);
-          const r = rentals.find(r => r.id === currentId);
+          const p = props.find(x => x.id === curPropId);
+          const r = p?.rooms?.find(r => r.id === curRoomId);
           if (!r || !confirm("삭제할까요?")) return;
-          r[t].splice(idx, 1);
-          save(rentals);
-          renderNotesList(t);
+          r.payments.splice(Number(btn.dataset.idx), 1);
+          save(props);
+          renderPayments(r);
         });
       });
     }
 
-    function addNote(type) {
-      const inputId = type === "visit" ? "rentalVisitInput" : "rentalMemoInput";
-      const content = document.getElementById(inputId).value.trim();
-      if (!content) return;
-      const item = rentals.find(r => r.id === currentId);
-      if (!item) return;
-      if (!Array.isArray(item[type])) item[type] = [];
-      item[type].push({ date: formatNow(), content });
-      save(rentals);
-      document.getElementById(inputId).value = "";
-      renderNotesList(type);
+    function renderRoomMemos(room) {
+      const el = document.getElementById("roomMemoList");
+      if (!el) return;
+      const memos = room.memos || [];
+      if (memos.length === 0) {
+        el.innerHTML = `<p class="empty">메모가 없습니다.</p>`;
+        return;
+      }
+      el.innerHTML = memos.slice().reverse().map((m, ri) => {
+        const realIdx = memos.length - 1 - ri;
+        return `<div style="padding:.4rem .25rem;display:flex;align-items:flex-start;gap:.5rem">
+          <div style="flex:1">
+            <div style="font-size:.75rem;color:var(--text-light)">${esc(m.date)}</div>
+            <div style="font-size:.9rem;line-height:1.6;word-break:break-all">${esc(m.content).replace(/\n/g,"<br>")}</div>
+          </div>
+          <button type="button" class="mini-button memo-del" data-idx="${realIdx}">삭제</button>
+        </div>`;
+      }).join("");
+      el.querySelectorAll(".memo-del").forEach(btn => {
+        btn.addEventListener("click", () => {
+          const p = props.find(x => x.id === curPropId);
+          const r = p?.rooms?.find(r => r.id === curRoomId);
+          if (!r || !confirm("삭제할까요?")) return;
+          r.memos.splice(Number(btn.dataset.idx), 1);
+          save(props);
+          renderRoomMemos(r);
+        });
+      });
     }
 
     // ── 이벤트 ──
-    document.getElementById("showAddRentalBtn").addEventListener("click", () => {
-      const form = document.getElementById("addRentalForm");
-      form.hidden = !form.hidden;
-      if (!form.hidden) document.getElementById("newRentalName").focus();
+    document.getElementById("btnShowAddProp").addEventListener("click", () => {
+      const f = document.getElementById("addPropForm");
+      f.hidden = !f.hidden;
+      if (!f.hidden) document.getElementById("newPropName").focus();
     });
-
-    document.getElementById("cancelRentalBtn").addEventListener("click", () => {
-      document.getElementById("addRentalForm").hidden = true;
-      document.getElementById("newRentalName").value = "";
+    document.getElementById("btnCancelProp").addEventListener("click", () => {
+      document.getElementById("addPropForm").hidden = true;
+      ["newPropName","newPropAddress"].forEach(id => document.getElementById(id).value = "");
     });
-
-    document.getElementById("saveRentalBtn").addEventListener("click", () => {
-      const name = document.getElementById("newRentalName").value.trim();
+    document.getElementById("btnSaveProp").addEventListener("click", () => {
+      const name    = document.getElementById("newPropName").value.trim();
+      const type    = document.getElementById("newPropType").value;
+      const address = document.getElementById("newPropAddress").value.trim();
       if (!name) { alert("물건명을 입력하세요."); return; }
-      rentals.push({ id: String(Date.now()), name, info: {}, visit: [], memo: [], createdAt: formatNow() });
-      save(rentals);
-      document.getElementById("newRentalName").value = "";
-      document.getElementById("addRentalForm").hidden = true;
-      renderList();
+      props.push({ id: String(Date.now()), name, type, address, rooms: [], createdAt: now() });
+      save(props);
+      ["newPropName","newPropAddress"].forEach(id => document.getElementById(id).value = "");
+      document.getElementById("newPropType").value = "";
+      document.getElementById("addPropForm").hidden = true;
+      renderProps();
+    });
+    document.getElementById("newPropName").addEventListener("keydown", e => {
+      if (e.key === "Enter") document.getElementById("btnSaveProp").click();
     });
 
-    document.getElementById("newRentalName").addEventListener("keydown", e => {
-      if (e.key === "Enter") document.getElementById("saveRentalBtn").click();
+    document.getElementById("btnBackToProps").addEventListener("click", () => {
+      showView("props"); curPropId = null; renderProps();
+    });
+    document.getElementById("btnDelProp").addEventListener("click", () => {
+      const p = props.find(x => x.id === curPropId);
+      if (!p || !confirm(`"${p.name}" 물건을 삭제할까요?\n모든 호실 데이터가 삭제됩니다.`)) return;
+      props = props.filter(x => x.id !== curPropId);
+      save(props);
+      document.getElementById("btnBackToProps").click();
     });
 
-    document.getElementById("backToRentalListBtn").addEventListener("click", () => {
-      document.getElementById("rentalDetailView").hidden = true;
-      document.getElementById("rentalListView").hidden = false;
-      currentId = null;
-      renderList();
+    document.getElementById("btnAddRoom").addEventListener("click", () => {
+      const f = document.getElementById("addRoomForm");
+      f.hidden = !f.hidden;
+      if (!f.hidden) document.getElementById("newRoomName").focus();
+    });
+    document.getElementById("btnCancelRoom").addEventListener("click", () => {
+      document.getElementById("addRoomForm").hidden = true;
+      document.getElementById("newRoomName").value = "";
+    });
+    document.getElementById("btnSaveRoom").addEventListener("click", () => {
+      const name = document.getElementById("newRoomName").value.trim();
+      if (!name) { alert("호실명을 입력하세요."); return; }
+      const p = props.find(x => x.id === curPropId);
+      if (!p) return;
+      if (p.rooms.some(r => r.name === name)) { alert("같은 호실명이 있습니다."); return; }
+      p.rooms.push({ id: String(Date.now()), name, contract: {}, payments: [], memos: [] });
+      save(props);
+      document.getElementById("newRoomName").value = "";
+      document.getElementById("addRoomForm").hidden = true;
+      renderRoomGrid(p); renderReport(p);
+    });
+    document.getElementById("newRoomName").addEventListener("keydown", e => {
+      if (e.key === "Enter") document.getElementById("btnSaveRoom").click();
     });
 
-    document.getElementById("deleteRentalBtn").addEventListener("click", () => {
-      const item = rentals.find(r => r.id === currentId);
-      if (!item || !confirm(`"${item.name}" 물건을 삭제할까요?`)) return;
-      rentals = rentals.filter(r => r.id !== currentId);
-      save(rentals);
-      document.getElementById("backToRentalListBtn").click();
+    document.getElementById("btnBackToRooms").addEventListener("click", () => {
+      const p = props.find(x => x.id === curPropId);
+      if (p) { renderRoomGrid(p); renderReport(p); }
+      showView("rooms"); curRoomId = null;
+    });
+    document.getElementById("btnDelRoom").addEventListener("click", () => {
+      const p    = props.find(x => x.id === curPropId);
+      const room = p?.rooms?.find(r => r.id === curRoomId);
+      if (!room || !confirm(`"${room.name}" 호실을 삭제할까요?`)) return;
+      p.rooms = p.rooms.filter(r => r.id !== curRoomId);
+      save(props);
+      document.getElementById("btnBackToRooms").click();
     });
 
-    document.getElementById("saveRentalInfoBtn").addEventListener("click", () => {
-      const item = rentals.find(r => r.id === currentId);
-      if (!item) return;
-      item.info = {
-        address: document.getElementById("rfAddress").value.trim(),
-        type:    document.getElementById("rfType").value,
-        deposit: document.getElementById("rfDeposit").value.trim(),
-        monthly: document.getElementById("rfMonthly").value.trim(),
-        status:  document.getElementById("rfStatus").value,
-        note:    document.getElementById("rfNote").value.trim(),
+    document.getElementById("roomTabNav").addEventListener("click", e => {
+      const tab = e.target.closest(".sub-tab")?.dataset.tab;
+      if (tab) switchRoomTab(tab);
+    });
+
+    document.getElementById("btnSaveContract").addEventListener("click", () => {
+      const p    = props.find(x => x.id === curPropId);
+      const room = p?.rooms?.find(r => r.id === curRoomId);
+      if (!room) return;
+      room.contract = {
+        ctype:   document.getElementById("rc-ctype").value,
+        tenant:  document.getElementById("rc-tenant").value.trim(),
+        deposit: document.getElementById("rc-deposit").value.trim(),
+        monthly: document.getElementById("rc-monthly").value.trim(),
+        dueday:  document.getElementById("rc-dueday").value.trim(),
+        start:   document.getElementById("rc-start").value,
+        end:     document.getElementById("rc-end").value,
+        note:    document.getElementById("rc-note").value.trim(),
       };
-      save(rentals);
-      renderList();
+      save(props);
       alert("저장됐습니다.");
     });
 
-    document.getElementById("addVisitBtn").addEventListener("click", () => addNote("visit"));
-    document.getElementById("addMemoBtn").addEventListener("click",  () => addNote("memo"));
-
-    document.getElementById("rentalSubTabNav").addEventListener("click", e => {
-      const tab = e.target.closest(".sub-tab")?.dataset.tab;
-      if (tab) switchTab(tab);
+    document.getElementById("btnAddPayment").addEventListener("click", () => {
+      const month  = document.getElementById("pay-month").value;
+      const amount = document.getElementById("pay-amount").value.trim();
+      const note   = document.getElementById("pay-note").value.trim();
+      if (!month && !amount) { alert("납부 월 또는 금액을 입력해주세요."); return; }
+      const p    = props.find(x => x.id === curPropId);
+      const room = p?.rooms?.find(r => r.id === curRoomId);
+      if (!room) return;
+      room.payments.push({ id: String(Date.now()), month, amount, note, paid: false, addedAt: now() });
+      save(props);
+      ["pay-month","pay-amount","pay-note"].forEach(id => document.getElementById(id).value = "");
+      renderPayments(room);
     });
 
-    document.getElementById("rentalVisitInput").addEventListener("keydown", e => {
-      if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); addNote("visit"); }
+    document.getElementById("btnAddRoomMemo").addEventListener("click", () => {
+      const content = document.getElementById("roomMemoInput").value.trim();
+      if (!content) return;
+      const p    = props.find(x => x.id === curPropId);
+      const room = p?.rooms?.find(r => r.id === curRoomId);
+      if (!room) return;
+      room.memos.push({ date: now(), content });
+      save(props);
+      document.getElementById("roomMemoInput").value = "";
+      renderRoomMemos(room);
     });
-    document.getElementById("rentalMemoInput").addEventListener("keydown", e => {
-      if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); addNote("memo"); }
+    document.getElementById("roomMemoInput").addEventListener("keydown", e => {
+      if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); document.getElementById("btnAddRoomMemo").click(); }
     });
 
-    renderList();
+    renderProps();
   })();
   </script>
 </body>
