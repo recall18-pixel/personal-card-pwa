@@ -143,17 +143,13 @@
         el.innerHTML = `<p class="empty">아직 내용이 없습니다. 아래에서 구상 내용을 추가해보세요.</p>`;
         return;
       }
-      el.innerHTML = `<div class="notes-card">` +
-        notes.slice().reverse().map((note, ri) => {
+      el.innerHTML = notes.slice().reverse().map((note, ri) => {
           const realIdx = notes.length - 1 - ri;
-          return `<div class="note-item">
-            <div class="note-head">
-              <div class="note-date">${escHtml(note.date)}</div>
-              <button type="button" class="mini-button" data-del="${realIdx}">삭제</button>
-            </div>
-            <div class="note-text">${escHtml(note.content).replace(/\n/g,"<br>")}</div>
+          return `<div style="padding:.55rem .25rem;display:flex;align-items:flex-start;gap:.5rem">
+            <div style="flex:1;font-size:.9rem;line-height:1.7;word-break:break-all">${escHtml(note.content).replace(/\n/g,"<br>")}</div>
+            <button type="button" class="mini-button" data-del="${realIdx}" style="flex-shrink:0">삭제</button>
           </div>`;
-        }).join("") + `</div>`;
+        }).join("");
 
       el.querySelectorAll("[data-del]").forEach(btn => {
         btn.addEventListener("click", () => {
