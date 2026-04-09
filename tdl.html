@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#0d9488" />
+  <title>TDL | 개인카드 PWA</title>
+  <link rel="manifest" href="manifest.json" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="app">
+    <header class="page-header">
+      <nav class="page-nav">
+        <a class="nav-link" href="index.html">홈</a>
+        <a class="nav-link" href="customer.html">고객관리</a>
+        <a class="nav-link" href="rental.html">임대관리</a>
+        <a class="nav-link" href="project.html">프로젝트</a>
+        <a class="nav-link current" href="tdl.html">TDL</a>
+        <a class="nav-link" href="schedule.html">약속관리</a>
+        <a class="nav-link" href="settings.html">설정</a>
+      </nav>
+      <div class="page-title-row">
+        <div>
+          <h1 class="page-title">TDL</h1>
+          <p class="page-desc">To-Do List — 해야 할 일을 기록하고 체크합니다.</p>
+        </div>
+      </div>
+    </header>
+
+    <main class="container">
+      <section class="panel">
+        <div class="panel-header">
+          <h2>할 일 목록 <span id="tdlCount" class="panel-count"></span></h2>
+          <div style="display:flex;gap:6px">
+            <button type="button" id="clearDoneBtn" class="secondary-button toolbar-button">완료 삭제</button>
+          </div>
+        </div>
+
+        <div class="tdl-add-row">
+          <input type="text" id="tdlInput" placeholder="할 일을 입력하고 Enter"
+            lang="ko" autocapitalize="off" autocorrect="off" spellcheck="false" />
+          <button type="button" id="tdlAddBtn" class="primary-action">추가</button>
+        </div>
+
+        <div id="tdlList" class="tdl-list"></div>
+      </section>
+    </main>
+  </div>
+
+  <script src="common.js"></script>
+  <script>
+  (function () {
+    const STORAGE_KEY = "tdl_v1";
+
+    function load() {
+      try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]"); }
+      catch { return []; }
+    }
+
+    function save(data) {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+    }
+
+    function escHtml(v) {
+      return String(v).replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;");
+    }
+
+    let items = load();
+
+    function render() {
+      const listEl = document.getElementById("tdlList");
+      const countEl = document.getElementById("tdlCount");
+      if (!listEl) return;
+
+      const pending = items.filter(i => !i.done).length;
+      const total = items.length;
+      if (countEl) countEl.textContent = total > 0 ? `${pending}/${total}` : "";
+
+      if (items.length === 0) {
+        listEl.innerHTML = `<p class="empty">할 일이 없습니다. 위에서 추가해보세요.</p>`;
+        return;
+      }
+
+      listEl.innerHTML = "";
+
+      // 미완료 먼저, 완료 나중
+      const sorted = [
+        ...items.filter(i => !i.done),
+        ...items.filter(i => i.done)
+      ];
+
+      sorted.forEach((item) => {
+        const row = document.createElement("div");
+        row.className = `tdl-item${item.done ? " tdl-done" : ""}`;
+        row.innerHTML = `
+          <label class="tdl-label">
+            <input type="checkbox" class="tdl-check" data-id="${escHtml(item.id)}" ${item.done ? "checked" : ""} />
+            <span class="tdl-text">${escHtml(item.text)}</span>
+          </label>
+          <button type="button" class="tdl-del-btn" data-id="${escHtml(item.id)}" title="삭제">✕</button>
+        `;
+
+        row.querySelector(".tdl-check").addEventListener("change", (e) => {
+          const target = items.find(i => i.id === item.id);
+          if (target) { target.done = e.target.checked; save(items); render(); }
+        });
+
+        row.querySelector(".tdl-del-btn").addEventListener("click", () => {
+          if (!confirm("이 항목을 삭제할까요?")) return;
+          items = items.filter(i => i.id !== item.id);
+          save(items); render();
+        });
+
+        listEl.appendChild(row);
+      });
+    }
+
+    function addItem() {
+      const input = document.getElementById("tdlInput");
+      const text = input.value.trim();
+      if (!text) return;
+      items.push({ id: String(Date.now() + Math.random()), text, done: false });
+      save(items);
+      input.value = "";
+      render();
+    }
+
+    document.getElementById("tdlAddBtn").addEventListener("click", addItem);
+    document.getElementById("tdlInput").addEventListener("keydown", (e) => {
+      if (e.key === "Enter") addItem();
+    });
+    document.getElementById("clearDoneBtn").addEventListener("click", () => {
+      const doneCount = items.filter(i => i.done).length;
+      if (doneCount === 0) { alert("완료된 항목이 없습니다."); return; }
+      if (!confirm(`완료된 ${doneCount}개 항목을 삭제할까요?`)) return;
+      items = items.filter(i => !i.done);
+      save(items); render();
+    });
+
+    render();
+  })();
+  </script>
+</body>
+</html>

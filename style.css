@@ -981,6 +981,268 @@ body.sheet-open {
   line-height: 1;
 }
 
+/* =============================================
+   홈 – 약속 알림 배너
+   ============================================= */
+.upcoming-banner {
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+  background: #fef9c3;
+  border: 1.5px solid #fde047;
+  border-radius: .6rem;
+  padding: .65rem 1rem;
+  margin-bottom: 1.2rem;
+  font-size: .9rem;
+  font-weight: 600;
+  color: #713f12;
+  flex-wrap: wrap;
+}
+.upcoming-blink {
+  color: #ef4444;
+  animation: blink 1s step-start infinite;
+  font-size: 1rem;
+}
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0; }
+}
+.upcoming-link {
+  margin-left: auto;
+  color: var(--brand-strong);
+  font-size: .85rem;
+  text-decoration: underline;
+  white-space: nowrap;
+}
+
+/* =============================================
+   홈 그리드
+   ============================================= */
+.home-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: .9rem;
+  margin-top: .8rem;
+}
+.home-card {
+  display: flex;
+  flex-direction: column;
+  gap: .3rem;
+  background: #fff;
+  border: 1.5px solid var(--border);
+  border-radius: .75rem;
+  padding: 1rem 1.1rem;
+  text-decoration: none;
+  color: var(--text);
+  transition: background .15s, border-color .15s;
+}
+.home-card:hover {
+  background: var(--brand-soft);
+  border-color: var(--brand);
+}
+.home-card strong {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--brand-strong);
+}
+.home-card span {
+  font-size: .8rem;
+  color: var(--text-light);
+  line-height: 1.4;
+}
+
+/* =============================================
+   프로젝트 페이지
+   ============================================= */
+.project-add-form {
+  display: flex;
+  gap: .5rem;
+  margin-bottom: 1rem;
+}
+.project-add-form input {
+  flex: 1;
+}
+.project-list {
+  display: flex;
+  flex-direction: column;
+  gap: .6rem;
+}
+.project-card {
+  background: #fff;
+  border: 1.5px solid var(--border);
+  border-radius: .75rem;
+  overflow: hidden;
+}
+.project-name-btn {
+  width: 100%;
+  text-align: left;
+  background: none;
+  border: none;
+  padding: .85rem 1rem;
+  font-size: .95rem;
+  font-weight: 600;
+  color: var(--brand-strong);
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.project-name-btn:hover { background: var(--brand-soft); }
+.project-del-btn {
+  background: none;
+  border: none;
+  color: #ef4444;
+  font-size: 1.1rem;
+  cursor: pointer;
+  padding: 0 .3rem;
+  line-height: 1;
+}
+.project-notes-list {
+  padding: 0 1rem .8rem;
+  display: flex;
+  flex-direction: column;
+  gap: .4rem;
+}
+.project-note-item {
+  background: var(--bg);
+  border-radius: .5rem;
+  padding: .55rem .75rem;
+  font-size: .87rem;
+  line-height: 1.5;
+  position: relative;
+}
+.project-note-date {
+  font-size: .75rem;
+  color: var(--text-light);
+  margin-bottom: .15rem;
+}
+.project-note-del {
+  position: absolute;
+  top: .4rem;
+  right: .5rem;
+  background: none;
+  border: none;
+  color: #ef4444;
+  font-size: .85rem;
+  cursor: pointer;
+  padding: 0;
+}
+.project-note-editor {
+  margin-top: .5rem;
+  display: flex;
+  flex-direction: column;
+  gap: .4rem;
+}
+.project-note-editor textarea {
+  width: 100%;
+  min-height: 72px;
+  resize: vertical;
+  font-size: .88rem;
+  padding: .5rem .7rem;
+  border: 1.5px solid var(--border);
+  border-radius: .5rem;
+  font-family: inherit;
+  box-sizing: border-box;
+}
+
+/* =============================================
+   TDL (To-Do List) 페이지
+   ============================================= */
+.tdl-add-row {
+  display: flex;
+  gap: .5rem;
+  margin-bottom: 1rem;
+}
+.tdl-add-row input { flex: 1; }
+.tdl-list {
+  display: flex;
+  flex-direction: column;
+  gap: .5rem;
+}
+.tdl-item {
+  display: flex;
+  align-items: center;
+  gap: .65rem;
+  background: #fff;
+  border: 1.5px solid var(--border);
+  border-radius: .65rem;
+  padding: .7rem .9rem;
+}
+.tdl-check {
+  width: 1.2rem;
+  height: 1.2rem;
+  accent-color: var(--brand);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.tdl-text {
+  flex: 1;
+  font-size: .92rem;
+  line-height: 1.4;
+  word-break: break-all;
+}
+.tdl-item.tdl-done {
+  opacity: .55;
+  background: var(--bg);
+}
+.tdl-item.tdl-done .tdl-text {
+  text-decoration: line-through;
+  color: var(--text-light);
+}
+.tdl-del-btn {
+  background: none;
+  border: none;
+  color: #ef4444;
+  font-size: 1rem;
+  cursor: pointer;
+  padding: 0;
+  line-height: 1;
+  flex-shrink: 0;
+}
+.tdl-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: .6rem;
+}
+
+/* =============================================
+   약속관리(schedule) 페이지 추가 요소
+   ============================================= */
+.schedule-add-form {
+  display: flex;
+  flex-direction: column;
+  gap: .5rem;
+  margin-top: .6rem;
+}
+.schedule-add-form input,
+.schedule-add-form textarea {
+  font-size: .9rem;
+  padding: .5rem .75rem;
+  border: 1.5px solid var(--border);
+  border-radius: .5rem;
+  font-family: inherit;
+  box-sizing: border-box;
+  width: 100%;
+}
+.schedule-add-form textarea {
+  min-height: 60px;
+  resize: vertical;
+}
+.schedule-title-text {
+  font-weight: 600;
+  font-size: .95rem;
+  color: var(--brand-strong);
+}
+.danger-mini {
+  background: none;
+  border: none;
+  color: #ef4444;
+  font-size: .82rem;
+  cursor: pointer;
+  padding: 0 .2rem;
+  text-decoration: underline;
+}
+
 .cal-day:hover {
   background: var(--brand-soft);
   color: var(--brand-strong);

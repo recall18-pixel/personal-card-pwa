@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#0d9488" />
+  <title>프로젝트 | 개인카드 PWA</title>
+  <link rel="manifest" href="manifest.json" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="app">
+    <header class="page-header">
+      <nav class="page-nav">
+        <a class="nav-link" href="index.html">홈</a>
+        <a class="nav-link" href="customer.html">고객관리</a>
+        <a class="nav-link" href="rental.html">임대관리</a>
+        <a class="nav-link current" href="project.html">프로젝트</a>
+        <a class="nav-link" href="tdl.html">TDL</a>
+        <a class="nav-link" href="schedule.html">약속관리</a>
+        <a class="nav-link" href="settings.html">설정</a>
+      </nav>
+      <div class="page-title-row">
+        <div>
+          <h1 class="page-title">프로젝트</h1>
+          <p class="page-desc">프로젝트별 구상과 아이디어를 기록합니다.</p>
+        </div>
+      </div>
+    </header>
+
+    <main class="container">
+      <!-- 프로젝트 목록 -->
+      <div id="projectListView">
+        <section class="panel">
+          <div class="panel-header">
+            <h2>프로젝트 목록</h2>
+            <button type="button" id="showAddProjectBtn" class="primary-action toolbar-button">+ 새 프로젝트</button>
+          </div>
+
+          <div id="addProjectForm" class="project-add-form" hidden>
+            <input type="text" id="newProjectName" placeholder="프로젝트 이름" maxlength="50"
+              lang="ko" autocapitalize="off" autocorrect="off" spellcheck="false" />
+            <div class="form-actions" style="margin-top:8px">
+              <button type="button" id="saveProjectBtn">추가</button>
+              <button type="button" id="cancelProjectBtn" class="secondary-button">취소</button>
+            </div>
+          </div>
+
+          <div id="projectList" class="project-list"></div>
+        </section>
+      </div>
+
+      <!-- 프로젝트 상세 -->
+      <div id="projectDetailView" hidden>
+        <section class="panel">
+          <div class="panel-header">
+            <h2 id="projectDetailTitle"></h2>
+            <div style="display:flex;gap:6px">
+              <button type="button" id="deleteProjectBtn" class="danger-button toolbar-button">삭제</button>
+              <button type="button" id="backToProjectListBtn" class="secondary-button toolbar-button">← 목록</button>
+            </div>
+          </div>
+          <p class="help-text" id="projectDetailMeta"></p>
+
+          <div id="projectNotesList" class="project-notes-list"></div>
+
+          <div class="project-note-editor" style="margin-top:16px">
+            <textarea id="projectNoteInput" placeholder="구상 내용을 입력하세요" rows="4"
+              lang="ko" autocapitalize="off" autocorrect="off" spellcheck="false"></textarea>
+            <div class="detail-action-row">
+              <button type="button" id="addProjectNoteBtn">추가</button>
+            </div>
+          </div>
+        </section>
+      </div>
+    </main>
+  </div>
+
+  <script src="common.js"></script>
+  <script>
+  (function () {
+    const STORAGE_KEY = "projects_v1";
+
+    function loadProjects() {
+      try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]"); }
+      catch { return []; }
+    }
+
+    function saveProjects(data) {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+    }
+
+    function formatNow() {
+      const d = new Date();
+      return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")} ${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")}`;
+    }
+
+    function escHtml(v) {
+      return String(v).replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;").replaceAll('"',"&quot;");
+    }
+
+    let projects = loadProjects();
+    let currentProjectId = null;
+
+    // ── 목록 렌더 ──
+    function renderProjectList() {
+      const el = document.getElementById("projectList");
+      if (!el) return;
+      if (projects.length === 0) {
+        el.innerHTML = `<p class="empty">프로젝트가 없습니다. 새 프로젝트를 추가해보세요.</p>`;
+        return;
+      }
+      el.innerHTML = "";
+      projects.slice().reverse().forEach((proj) => {
+        const card = document.createElement("div");
+        card.className = "project-card";
+        card.innerHTML = `
+          <button type="button" class="project-name-btn">${escHtml(proj.name)}</button>
+          <div class="project-meta">${(proj.notes||[]).length}개의 내용 · ${escHtml(proj.createdAt)}</div>
+        `;
+        card.querySelector(".project-name-btn").addEventListener("click", () => openProject(proj.id));
+        el.appendChild(card);
+      });
+    }
+
+    // ── 상세 보기 ──
+    function openProject(id) {
+      currentProjectId = id;
+      const proj = projects.find(p => p.id === id);
+      if (!proj) return;
+      document.getElementById("projectListView").hidden = true;
+      document.getElementById("projectDetailView").hidden = false;
+      document.getElementById("projectDetailTitle").textContent = proj.name;
+      document.getElementById("projectDetailMeta").textContent = `생성일: ${proj.createdAt}`;
+      renderProjectNotes(proj);
+    }
+
+    function renderProjectNotes(proj) {
+      const el = document.getElementById("projectNotesList");
+      if (!el) return;
+      const notes = proj.notes || [];
+      if (notes.length === 0) {
+        el.innerHTML = `<p class="empty">아직 내용이 없습니다. 아래에서 구상 내용을 추가해보세요.</p>`;
+        return;
+      }
+      el.innerHTML = `<div class="notes-card">` +
+        notes.slice().reverse().map((note, ri) => {
+          const realIdx = notes.length - 1 - ri;
+          return `<div class="note-item">
+            <div class="note-head">
+              <div class="note-date">${escHtml(note.date)}</div>
+              <button type="button" class="mini-button" data-del="${realIdx}">삭제</button>
+            </div>
+            <div class="note-text">${escHtml(note.content).replace(/\n/g,"<br>")}</div>
+          </div>`;
+        }).join("") + `</div>`;
+
+      el.querySelectorAll("[data-del]").forEach(btn => {
+        btn.addEventListener("click", () => {
+          const idx = Number(btn.dataset.del);
+          const proj = projects.find(p => p.id === currentProjectId);
+          if (!proj) return;
+          if (!confirm("이 내용을 삭제할까요?")) return;
+          proj.notes.splice(idx, 1);
+          saveProjects(projects);
+          renderProjectNotes(proj);
+        });
+      });
+    }
+
+    // ── 이벤트 바인딩 ──
+    document.getElementById("showAddProjectBtn").addEventListener("click", () => {
+      const form = document.getElementById("addProjectForm");
+      form.hidden = !form.hidden;
+      if (!form.hidden) document.getElementById("newProjectName").focus();
+    });
+
+    document.getElementById("cancelProjectBtn").addEventListener("click", () => {
+      document.getElementById("addProjectForm").hidden = true;
+      document.getElementById("newProjectName").value = "";
+    });
+
+    document.getElementById("saveProjectBtn").addEventListener("click", () => {
+      const name = document.getElementById("newProjectName").value.trim();
+      if (!name) { alert("프로젝트 이름을 입력하세요."); return; }
+      if (projects.some(p => p.name === name)) { alert("같은 이름의 프로젝트가 이미 있습니다."); return; }
+      projects.push({ id: String(Date.now()), name, notes: [], createdAt: formatNow() });
+      saveProjects(projects);
+      document.getElementById("newProjectName").value = "";
+      document.getElementById("addProjectForm").hidden = true;
+      renderProjectList();
+    });
+
+    document.getElementById("newProjectName").addEventListener("keydown", (e) => {
+      if (e.key === "Enter") document.getElementById("saveProjectBtn").click();
+    });
+
+    document.getElementById("backToProjectListBtn").addEventListener("click", () => {
+      document.getElementById("projectDetailView").hidden = true;
+      document.getElementById("projectListView").hidden = false;
+      currentProjectId = null;
+      renderProjectList();
+    });
+
+    document.getElementById("deleteProjectBtn").addEventListener("click", () => {
+      const proj = projects.find(p => p.id === currentProjectId);
+      if (!proj) return;
+      if (!confirm(`"${proj.name}" 프로젝트를 삭제할까요? 모든 내용이 삭제됩니다.`)) return;
+      projects = projects.filter(p => p.id !== currentProjectId);
+      saveProjects(projects);
+      document.getElementById("backToProjectListBtn").click();
+    });
+
+    document.getElementById("addProjectNoteBtn").addEventListener("click", () => {
+      const content = document.getElementById("projectNoteInput").value.trim();
+      if (!content) { alert("내용을 입력하세요."); return; }
+      const proj = projects.find(p => p.id === currentProjectId);
+      if (!proj) return;
+      proj.notes = proj.notes || [];
+      proj.notes.push({ date: formatNow(), content });
+      saveProjects(projects);
+      document.getElementById("projectNoteInput").value = "";
+      renderProjectNotes(proj);
+    });
+
+    renderProjectList();
+  })();
+  </script>
+</body>
+</html>

@@ -1,4 +1,4 @@
-const CACHE_VERSION = "v8";
+const CACHE_VERSION = "v9";
 const CACHE_NAME = `personal-cards-${CACHE_VERSION}`;
 
 const APP_SHELL = [
@@ -6,6 +6,9 @@ const APP_SHELL = [
   "./index.html",
   "./customer.html",
   "./rental.html",
+  "./project.html",
+  "./tdl.html",
+  "./schedule.html",
   "./settings.html",
   "./style.css",
   "./app.js",

@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="theme-color" content="#4f46e5" />
+  <meta name="theme-color" content="#0d9488" />
   <title>개인카드 PWA</title>
   <link rel="manifest" href="manifest.json" />
   <link rel="stylesheet" href="style.css" />
@@ -13,7 +13,14 @@
     <div class="landing-card wide">
       <p class="landing-kicker">PWA 홈</p>
       <h1>개인카드</h1>
-      <p>고객, 임대, 설정 화면을 분리해서 관리하는 홈 화면입니다.</p>
+      <p>고객, 임대, 프로젝트, 일정을 한 곳에서 관리합니다.</p>
+
+      <!-- 다가오는 약속 알림 배너 -->
+      <div id="upcomingBanner" class="upcoming-banner" hidden>
+        <span class="upcoming-blink">●</span>
+        <span id="upcomingText"></span>
+        <a href="schedule.html" class="upcoming-link">확인하기 →</a>
+      </div>
 
       <div class="home-grid">
         <a class="home-card" href="customer.html">
@@ -24,6 +31,18 @@
           <strong>임대관리</strong>
           <span>임대 관련 정보와 작업 준비</span>
         </a>
+        <a class="home-card" href="project.html">
+          <strong>프로젝트</strong>
+          <span>프로젝트 구상과 아이디어 기록</span>
+        </a>
+        <a class="home-card" href="tdl.html">
+          <strong>TDL</strong>
+          <span>To-Do List — 할 일 체크리스트</span>
+        </a>
+        <a class="home-card" href="schedule.html">
+          <strong>약속관리</strong>
+          <span>캘린더로 스케줄 관리</span>
+        </a>
         <a class="home-card" href="settings.html">
           <strong>설정</strong>
           <span>앱 설정과 데이터 점검</span>
@@ -33,5 +52,46 @@
   </section>
 
   <script src="common.js"></script>
+  <script>
+  (function () {
+    // 3일 이내 약속 알림
+    function checkUpcoming() {
+      const STORAGE_KEY = "schedule_v1";
+      let schedules = {};
+      try { schedules = JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}"); } catch {}
+
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const soon = [];
+
+      Object.keys(schedules).forEach(key => {
+        if (!schedules[key] || schedules[key].length === 0) return;
+        // key: YYYYMMDD
+        const y = Number(key.slice(0,4));
+        const m = Number(key.slice(4,6)) - 1;
+        const d = Number(key.slice(6,8));
+        const date = new Date(y, m, d);
+        const diffDays = Math.round((date - today) / 86400000);
+        if (diffDays >= 0 && diffDays <= 3) {
+          schedules[key].forEach(s => {
+            soon.push({ diffDays, date, title: s.title, time: s.time });
+          });
+        }
+      });
+
+      if (soon.length === 0) return;
+
+      soon.sort((a, b) => a.date - b.date);
+      const s = soon[0];
+      const dayLabel = s.diffDays === 0 ? "오늘" : s.diffDays === 1 ? "내일" : `${s.diffDays}일 후`;
+      const timeLabel = s.time ? ` ${s.time}` : "";
+      document.getElementById("upcomingText").textContent =
+        `${dayLabel}${timeLabel} — ${s.title}${soon.length > 1 ? ` 외 ${soon.length - 1}건` : ""}`;
+      document.getElementById("upcomingBanner").hidden = false;
+    }
+
+    checkUpcoming();
+  })();
+  </script>
 </body>
 </html>

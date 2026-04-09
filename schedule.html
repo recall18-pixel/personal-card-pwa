@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#0d9488" />
+  <title>약속관리 | 개인카드 PWA</title>
+  <link rel="manifest" href="manifest.json" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="app">
+    <header class="page-header">
+      <nav class="page-nav">
+        <a class="nav-link" href="index.html">홈</a>
+        <a class="nav-link" href="customer.html">고객관리</a>
+        <a class="nav-link" href="rental.html">임대관리</a>
+        <a class="nav-link" href="project.html">프로젝트</a>
+        <a class="nav-link" href="tdl.html">TDL</a>
+        <a class="nav-link current" href="schedule.html">약속관리</a>
+        <a class="nav-link" href="settings.html">설정</a>
+      </nav>
+      <div class="page-title-row">
+        <div>
+          <h1 class="page-title">약속관리</h1>
+          <p class="page-desc">캘린더로 스케줄을 기록하고 관리합니다.</p>
+        </div>
+      </div>
+    </header>
+
+    <main class="container">
+      <section class="panel">
+        <div class="journal-cal-header">
+          <button type="button" id="calPrev" class="cal-nav-btn">&#8249;</button>
+          <span id="calTitle" class="cal-title"></span>
+          <button type="button" id="calNext" class="cal-nav-btn">&#8250;</button>
+        </div>
+        <div id="calGrid" class="cal-grid"></div>
+      </section>
+
+      <!-- 날짜 상세 패널 -->
+      <section class="panel" id="dayPanel" hidden>
+        <div class="journal-day-header">
+          <h3 id="dayTitle"></h3>
+          <button type="button" id="dayClose" class="secondary-button" style="width:auto;padding:6px 14px;font-size:0.83rem">닫기</button>
+        </div>
+
+        <div id="dayScheduleList"></div>
+
+        <hr style="margin:14px 0" />
+        <h4 style="margin:0 0 10px;font-size:0.9rem;color:var(--brand-strong)">일정 추가</h4>
+        <div class="schedule-add-form">
+          <input type="text" id="scheduleTimeInput" placeholder="시간 (예: 오후 2시, 14:00)" maxlength="20"
+            lang="ko" autocapitalize="off" autocorrect="off" spellcheck="false" />
+          <input type="text" id="scheduleTitleInput" placeholder="제목" maxlength="50"
+            lang="ko" autocapitalize="off" autocorrect="off" spellcheck="false" />
+          <textarea id="scheduleMemoInput" placeholder="메모 (선택)" rows="2"
+            lang="ko" autocapitalize="off" autocorrect="off" spellcheck="false"></textarea>
+          <div class="detail-action-row">
+            <button type="button" id="addScheduleBtn">추가</button>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script src="common.js"></script>
+  <script>
+  (function () {
+    const STORAGE_KEY = "schedule_v1";
+
+    function load() {
+      try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}"); }
+      catch { return {}; }
+    }
+
+    function save(data) {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+    }
+
+    function escHtml(v) {
+      return String(v).replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;").replaceAll('"','&quot;');
+    }
+
+    let schedules = load(); // { "YYYYMMDD": [ {id, time, title, memo} ] }
+    let calYear = new Date().getFullYear();
+    let calMonth = new Date().getMonth();
+    let currentDateKey = null;
+
+    // ── 유틸 ──
+    function dateKey(y, m1, d) {
+      return `${y}${String(m1).padStart(2,"0")}${String(d).padStart(2,"0")}`;
+    }
+
+    function formatDateLabel(key) {
+      // key: YYYYMMDD
+      const y = key.slice(0,4), m = key.slice(4,6), d = key.slice(6,8);
+      return `${y}년 ${Number(m)}월 ${Number(d)}일`;
+    }
+
+    // ── 캘린더 렌더 ──
+    function renderCalendar() {
+      const titleEl = document.getElementById("calTitle");
+      const gridEl = document.getElementById("calGrid");
+      if (!titleEl || !gridEl) return;
+
+      const month1 = calMonth + 1;
+      titleEl.textContent = `${calYear}년 ${month1}월`;
+
+      const firstDay = new Date(calYear, calMonth, 1).getDay();
+      const lastDate = new Date(calYear, calMonth + 1, 0).getDate();
+      const today = new Date();
+
+      // 이 달에 일정 있는 날 집합
+      const datesWithSchedule = new Set();
+      Object.keys(schedules).forEach(k => {
+        if (k.startsWith(`${calYear}${String(month1).padStart(2,"0")}`) && schedules[k]?.length > 0) {
+          datesWithSchedule.add(Number(k.slice(6)));
+        }
+      });
+
+      let html = `<div class="cal-weekdays"><span>일</span><span>월</span><span>화</span><span>수</span><span>목</span><span>금</span><span>토</span></div><div class="cal-days">`;
+      for (let i = 0; i < firstDay; i++) html += `<span class="cal-day empty"></span>`;
+      for (let d = 1; d <= lastDate; d++) {
+        const isToday = today.getFullYear()===calYear && today.getMonth()===calMonth && today.getDate()===d;
+        const hasDot = datesWithSchedule.has(d);
+        const key = dateKey(calYear, month1, d);
+        html += `<button type="button" class="cal-day${isToday?" cal-today":""}${hasDot?" cal-has-note":""}" data-key="${key}" data-day="${d}">${d}${hasDot?'<span class="cal-dot"></span>':""}</button>`;
+      }
+      html += `</div>`;
+      gridEl.innerHTML = html;
+
+      gridEl.querySelectorAll(".cal-day[data-key]").forEach(btn => {
+        btn.addEventListener("click", () => openDay(btn.dataset.key, Number(btn.dataset.day)));
+      });
+    }
+
+    // ── 날짜 상세 ──
+    function openDay(key, day) {
+      currentDateKey = key;
+      const panel = document.getElementById("dayPanel");
+      document.getElementById("dayTitle").textContent = formatDateLabel(key);
+      renderDayList(key);
+      document.getElementById("scheduleTimeInput").value = "";
+      document.getElementById("scheduleTitleInput").value = "";
+      document.getElementById("scheduleMemoInput").value = "";
+      panel.hidden = false;
+      panel.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    }
+
+    function renderDayList(key) {
+      const el = document.getElementById("dayScheduleList");
+      const list = schedules[key] || [];
+      if (list.length === 0) {
+        el.innerHTML = `<p class="empty">이 날의 일정이 없습니다.</p>`;
+        return;
+      }
+      el.innerHTML = `<div class="notes-card">` +
+        list.map((s, idx) => `
+          <div class="note-item">
+            <div class="note-head">
+              <div class="note-date">${escHtml(s.time || "시간 미정")}</div>
+              <button type="button" class="mini-button danger-mini" data-idx="${idx}">삭제</button>
+            </div>
+            <div class="schedule-title-text">${escHtml(s.title)}</div>
+            ${s.memo ? `<div class="note-text" style="margin-top:4px">${escHtml(s.memo).replace(/\n/g,"<br>")}</div>` : ""}
+          </div>`).join("") + `</div>`;
+
+      el.querySelectorAll("[data-idx]").forEach(btn => {
+        btn.addEventListener("click", () => {
+          if (!confirm("이 일정을 삭제할까요?")) return;
+          schedules[currentDateKey].splice(Number(btn.dataset.idx), 1);
+          if (schedules[currentDateKey].length === 0) delete schedules[currentDateKey];
+          save(schedules);
+          renderDayList(currentDateKey);
+          renderCalendar();
+        });
+      });
+    }
+
+    document.getElementById("addScheduleBtn").addEventListener("click", () => {
+      const time = document.getElementById("scheduleTimeInput").value.trim();
+      const title = document.getElementById("scheduleTitleInput").value.trim();
+      const memo = document.getElementById("scheduleMemoInput").value.trim();
+      if (!title) { alert("제목을 입력하세요."); return; }
+      if (!schedules[currentDateKey]) schedules[currentDateKey] = [];
+      schedules[currentDateKey].push({ id: String(Date.now()), time, title, memo });
+      save(schedules);
+      document.getElementById("scheduleTimeInput").value = "";
+      document.getElementById("scheduleTitleInput").value = "";
+      document.getElementById("scheduleMemoInput").value = "";
+      renderDayList(currentDateKey);
+      renderCalendar();
+    });
+
+    document.getElementById("scheduleTitleInput").addEventListener("keydown", e => {
+      if (e.key === "Enter") document.getElementById("addScheduleBtn").click();
+    });
+
+    document.getElementById("dayClose").addEventListener("click", () => {
+      document.getElementById("dayPanel").hidden = true;
+      currentDateKey = null;
+    });
+
+    document.getElementById("calPrev").addEventListener("click", () => {
+      calMonth--; if (calMonth < 0) { calMonth = 11; calYear--; } renderCalendar();
+    });
+    document.getElementById("calNext").addEventListener("click", () => {
+      calMonth++; if (calMonth > 11) { calMonth = 0; calYear++; } renderCalendar();
+    });
+
+    renderCalendar();
+  })();
+  </script>
+</body>
+</html>
