@@ -858,6 +858,235 @@ body.sheet-open {
   display: none;
 }
 
+/* ── 하위 탭 ── */
+.sub-tab-nav {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 16px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 5px;
+}
+
+.sub-tab {
+  flex: 1;
+  padding: 9px 4px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  background: transparent;
+  border: none;
+  border-radius: 10px;
+  color: var(--muted);
+  cursor: pointer;
+  box-shadow: none;
+  transition: background 0.15s, color 0.15s;
+}
+
+.sub-tab:hover {
+  background: var(--brand-soft);
+  color: var(--brand-strong);
+  box-shadow: none;
+  transform: none;
+}
+
+.sub-tab.active {
+  background: var(--brand);
+  color: #fff;
+  box-shadow: 0 2px 8px rgba(13, 148, 136, 0.25);
+}
+
+/* ── 검색 ── */
+.search-bar {
+  margin-bottom: 14px;
+}
+
+.search-bar input {
+  width: 100%;
+  font-size: 1rem;
+}
+
+/* ── 캘린더 ── */
+.journal-cal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+
+.cal-title {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--brand-strong);
+}
+
+.cal-nav-btn {
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  font-size: 1.3rem;
+  border-radius: 50%;
+  background: var(--surface-soft);
+  border: 1px solid var(--line);
+  color: var(--text);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: none;
+}
+
+.cal-nav-btn:hover {
+  background: var(--brand-soft);
+  border-color: var(--brand);
+  color: var(--brand-strong);
+  box-shadow: none;
+  transform: none;
+}
+
+.cal-weekdays {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  margin-bottom: 4px;
+}
+
+.cal-weekdays span {
+  text-align: center;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--muted);
+  padding: 4px 0;
+}
+
+.cal-days {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 3px;
+}
+
+.cal-day {
+  position: relative;
+  aspect-ratio: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.88rem;
+  border-radius: 50%;
+  border: none;
+  background: transparent;
+  color: var(--text);
+  cursor: pointer;
+  box-shadow: none;
+  padding: 0;
+  line-height: 1;
+}
+
+.cal-day:hover {
+  background: var(--brand-soft);
+  color: var(--brand-strong);
+  box-shadow: none;
+  transform: none;
+}
+
+.cal-day.empty {
+  cursor: default;
+  pointer-events: none;
+}
+
+.cal-day.cal-today {
+  background: var(--brand);
+  color: #fff;
+  font-weight: 700;
+}
+
+.cal-day.cal-today:hover {
+  background: var(--brand-strong);
+  color: #fff;
+}
+
+.cal-day.cal-has-note {
+  font-weight: 700;
+}
+
+.cal-dot {
+  display: block;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--brand);
+  margin-top: 2px;
+}
+
+.cal-day.cal-today .cal-dot {
+  background: #fff;
+}
+
+/* ── 상담일지 일별 패널 ── */
+.journal-day-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 14px;
+}
+
+.journal-day-header h3 {
+  margin: 0;
+  font-size: 1rem;
+  color: var(--brand-strong);
+}
+
+.journal-entry {
+  margin-bottom: 14px;
+}
+
+.journal-entry-name {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--muted);
+  margin-bottom: 6px;
+}
+
+/* ── 리포트 플레이스홀더 ── */
+.report-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 24px;
+  gap: 8px;
+  text-align: center;
+}
+
+.report-icon {
+  font-size: 2.8rem;
+  line-height: 1;
+  margin-bottom: 8px;
+}
+
+.report-title {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--brand-strong);
+  margin: 0;
+}
+
+.report-desc {
+  font-size: 0.88rem;
+  color: var(--muted);
+  margin: 0;
+  line-height: 1.6;
+}
+
+.report-coming {
+  margin-top: 8px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #fff;
+  background: var(--brand);
+  border-radius: 20px;
+  padding: 4px 14px;
+}
+
 /* ── 숨김 고객 ── */
 .secret-toggle {
   display: inline-block;

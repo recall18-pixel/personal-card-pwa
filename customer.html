@@ -26,51 +26,115 @@
     </header>
 
     <main class="container">
-      <section class="panel">
-        <div class="panel-header">
-          <h2>고객 목록<button type="button" id="secretHiddenToggle" class="secret-toggle" aria-hidden="true" tabindex="-1"></button></h2>
-          <div class="list-toolbar">
-            <span class="panel-count" id="personCount"></span>
-            <button type="button" id="toggleDeleteModeButton" class="secondary-button toolbar-button">선택삭제</button>
-            <button type="button" id="deleteSelectedButton" class="danger-button toolbar-button" hidden>삭제 실행 (0)</button>
-            <button type="button" id="toggleFormButton" class="primary-action toolbar-button">고객추가</button>
-          </div>
-        </div>
-        <div id="personList" class="person-list"></div>
-      </section>
 
-      <section class="panel" id="formPanel" hidden>
-        <h2>고객 추가</h2>
-        <form id="personForm" lang="ko">
-          <div class="section-title">인적사항</div>
-          <div class="inline-fields">
-            <input type="text" id="name" placeholder="이름" required lang="ko" autocapitalize="off" autocorrect="off" spellcheck="false" />
-            <select id="gender" lang="ko">
-              <option value="">성별 선택</option>
-              <option value="남">남</option>
-              <option value="여">여</option>
+      <!-- 하위 탭 -->
+      <nav class="sub-tab-nav">
+        <button type="button" class="sub-tab active" data-tab="list">고객 목록</button>
+        <button type="button" class="sub-tab" data-tab="search">검색</button>
+        <button type="button" class="sub-tab" data-tab="journal">상담일지</button>
+        <button type="button" class="sub-tab" data-tab="report">리포트</button>
+      </nav>
+
+      <!-- 고객 목록 탭 -->
+      <div id="tab-list" class="tab-panel">
+        <section class="panel">
+          <div class="panel-header">
+            <h2>고객 목록<button type="button" id="secretHiddenToggle" class="secret-toggle" aria-hidden="true" tabindex="-1"></button></h2>
+            <div class="list-toolbar">
+              <span class="panel-count" id="personCount"></span>
+              <button type="button" id="toggleDeleteModeButton" class="secondary-button toolbar-button">선택삭제</button>
+              <button type="button" id="deleteSelectedButton" class="danger-button toolbar-button" hidden>삭제 실행 (0)</button>
+              <button type="button" id="toggleFormButton" class="primary-action toolbar-button">고객추가</button>
+            </div>
+          </div>
+          <div id="personList" class="person-list"></div>
+        </section>
+
+        <section class="panel" id="formPanel" hidden>
+          <h2>고객 추가</h2>
+          <form id="personForm" lang="ko">
+            <div class="section-title">인적사항</div>
+            <div class="inline-fields">
+              <input type="text" id="name" placeholder="이름" required lang="ko" autocapitalize="off" autocorrect="off" spellcheck="false" />
+              <select id="gender" lang="ko">
+                <option value="">성별 선택</option>
+                <option value="남">남</option>
+                <option value="여">여</option>
+              </select>
+            </div>
+            <input type="text" id="phone" inputmode="numeric" placeholder="전화번호" />
+            <input type="email" id="email" placeholder="메일주소" autocapitalize="off" autocorrect="off" spellcheck="false" />
+            <input type="text" id="address" placeholder="주소" lang="ko" autocapitalize="off" autocorrect="off" spellcheck="false" />
+            <input type="text" id="birthDate" maxlength="6" inputmode="numeric" placeholder="생년월일 6자리 예: 821003" />
+            <div class="preview-text" id="birthPreview"></div>
+            <input type="text" id="age" placeholder="한국식 나이 자동계산" readonly />
+            <input type="text" id="job" placeholder="직업" lang="ko" autocapitalize="off" autocorrect="off" spellcheck="false" />
+            <input type="text" id="tags" placeholder="태그(쉼표로 구분)" lang="ko" autocapitalize="off" autocorrect="off" spellcheck="false" />
+
+            <div class="section-title">상담내역</div>
+            <input type="text" id="firstConsultDate" maxlength="6" inputmode="numeric" placeholder="상담일자 6자리 예: 260320" />
+            <div class="preview-text" id="consultDatePreview"></div>
+            <textarea id="firstNote" placeholder="상담내용" lang="ko" autocapitalize="off" autocorrect="off" spellcheck="false"></textarea>
+
+            <div class="form-actions">
+              <button type="submit">저장</button>
+              <button type="button" id="cancelFormButton" class="secondary-button">취소</button>
+            </div>
+          </form>
+        </section>
+      </div>
+
+      <!-- 검색 탭 -->
+      <div id="tab-search" class="tab-panel" hidden>
+        <section class="panel">
+          <h2>고객 검색</h2>
+          <div class="search-bar">
+            <input type="text" id="searchInput" placeholder="성명으로 검색" lang="ko" autocapitalize="off" autocorrect="off" spellcheck="false" />
+          </div>
+          <div id="searchResults" class="person-list"></div>
+        </section>
+      </div>
+
+      <!-- 상담일지 탭 -->
+      <div id="tab-journal" class="tab-panel" hidden>
+        <section class="panel">
+          <div class="journal-cal-header">
+            <button type="button" id="calPrev" class="cal-nav-btn">&#8249;</button>
+            <span id="calTitle" class="cal-title"></span>
+            <button type="button" id="calNext" class="cal-nav-btn">&#8250;</button>
+          </div>
+          <div id="calGrid" class="cal-grid"></div>
+        </section>
+        <section class="panel" id="journalDayPanel" hidden>
+          <div class="journal-day-header">
+            <h3 id="journalDayTitle"></h3>
+            <button type="button" id="journalDayClose" class="secondary-button" style="width:auto;padding:6px 14px;font-size:0.83rem">닫기</button>
+          </div>
+          <div id="journalDayNotes"></div>
+          <hr />
+          <h4 style="margin:12px 0 8px;font-size:0.9rem;color:var(--brand-strong)">상담내역 추가</h4>
+          <div class="detail-note-editor">
+            <select id="journalPersonSelect" lang="ko">
+              <option value="">고객 선택</option>
             </select>
+            <textarea id="journalContent" placeholder="상담내용을 입력하세요" lang="ko" autocapitalize="off" autocorrect="off" spellcheck="false"></textarea>
+            <div class="detail-action-row">
+              <button type="button" id="journalAddNote">상담내역 추가</button>
+            </div>
           </div>
-          <input type="text" id="phone" inputmode="numeric" placeholder="전화번호" />
-          <input type="email" id="email" placeholder="메일주소" autocapitalize="off" autocorrect="off" spellcheck="false" />
-          <input type="text" id="address" placeholder="주소" lang="ko" autocapitalize="off" autocorrect="off" spellcheck="false" />
-          <input type="text" id="birthDate" maxlength="6" inputmode="numeric" placeholder="생년월일 6자리 예: 821003" />
-          <div class="preview-text" id="birthPreview"></div>
-          <input type="text" id="age" placeholder="한국식 나이 자동계산" readonly />
-          <input type="text" id="job" placeholder="직업" lang="ko" autocapitalize="off" autocorrect="off" spellcheck="false" />
-          <input type="text" id="tags" placeholder="태그(쉼표로 구분)" lang="ko" autocapitalize="off" autocorrect="off" spellcheck="false" />
+        </section>
+      </div>
 
-          <div class="section-title">상담내역</div>
-          <input type="text" id="firstConsultDate" maxlength="6" inputmode="numeric" placeholder="상담일자 6자리 예: 260320" />
-          <div class="preview-text" id="consultDatePreview"></div>
-          <textarea id="firstNote" placeholder="상담내용" lang="ko" autocapitalize="off" autocorrect="off" spellcheck="false"></textarea>
+      <!-- 리포트 탭 -->
+      <div id="tab-report" class="tab-panel" hidden>
+        <section class="panel report-placeholder">
+          <div class="report-icon">📊</div>
+          <p class="report-title">리포트</p>
+          <p class="report-desc">매출, 상담 횟수, 미팅 횟수 등<br>통계 리포트가 이곳에 표시됩니다.</p>
+          <p class="report-coming">준비 중</p>
+        </section>
+      </div>
 
-          <div class="form-actions">
-            <button type="submit">저장</button>
-            <button type="button" id="cancelFormButton" class="secondary-button">취소</button>
-          </div>
-        </form>
-      </section>
     </main>
   </div>
 

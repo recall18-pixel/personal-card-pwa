@@ -995,6 +995,268 @@ function init() {
   updateDeleteToolbar();
   renderList();
   closeForm();
+  bindSubTabs();
 }
 
 init();
+
+// ── 하위 탭 ───────────────────────────────────────────────────
+
+function bindSubTabs() {
+  const tabs = document.querySelectorAll(".sub-tab");
+  if (!tabs.length) return;
+
+  tabs.forEach((tab) => {
+    tab.addEventListener("click", () => {
+      const targetId = tab.dataset.tab;
+      tabs.forEach((t) => t.classList.remove("active"));
+      tab.classList.add("active");
+
+      document.querySelectorAll(".tab-panel").forEach((panel) => {
+        panel.hidden = panel.id !== `tab-${targetId}`;
+      });
+
+      if (targetId === "search") initSearch();
+      if (targetId === "journal") initJournal();
+    });
+  });
+}
+
+// ── 검색 ───────────────────────────────────────────────────────
+
+function initSearch() {
+  const input = document.getElementById("searchInput");
+  const resultsEl = document.getElementById("searchResults");
+  if (!input || !resultsEl) return;
+
+  // 이미 이벤트 바인딩된 경우 중복 방지
+  if (input.dataset.bound) {
+    renderSearchResults(input.value.trim());
+    return;
+  }
+  input.dataset.bound = "1";
+
+  input.addEventListener("input", () => {
+    renderSearchResults(input.value.trim());
+  });
+
+  input.focus();
+  renderSearchResults("");
+}
+
+function renderSearchResults(query) {
+  const resultsEl = document.getElementById("searchResults");
+  if (!resultsEl) return;
+
+  const lowerQuery = query.toLowerCase();
+  const matched = people
+    .filter((p) => !p.hidden)
+    .filter((p) => !query || p.name.toLowerCase().includes(lowerQuery))
+    .slice()
+    .sort((a, b) => a.name.localeCompare(b.name, "ko"));
+
+  if (matched.length === 0) {
+    resultsEl.innerHTML = `<p class="empty">${query ? "검색 결과가 없습니다." : "등록된 고객이 없습니다."}</p>`;
+    return;
+  }
+
+  resultsEl.innerHTML = "";
+  matched.forEach((person) => {
+    const koreanAge = calculateKoreanAge(person.birthDate);
+    const card = document.createElement("div");
+    card.className = "person-card";
+    card.innerHTML = `
+      <div class="person-card-top">
+        <div class="person-title-wrap">
+          <button type="button" class="person-name-button">${escapeHtml(person.name)}</button>
+        </div>
+        <div class="sub">${escapeHtml(person.gender || "-")} · ${escapeHtml(koreanAge ? `${koreanAge}세` : "-")}</div>
+        <div class="sub">${escapeHtml(person.phone || "전화번호 없음")}</div>
+        <div class="sub">${escapeHtml(person.job || "직업 미입력")}</div>
+      </div>
+    `;
+    card.querySelector(".person-name-button").addEventListener("click", () => {
+      // 고객 목록 탭으로 이동 후 상세 열기
+      const listTab = document.querySelector('.sub-tab[data-tab="list"]');
+      listTab?.click();
+      setTimeout(() => showDetail(person.id), 50);
+    });
+    resultsEl.appendChild(card);
+  });
+}
+
+// ── 상담일지 캘린더 ────────────────────────────────────────────
+
+let calYear = new Date().getFullYear();
+let calMonth = new Date().getMonth(); // 0-indexed
+
+function initJournal() {
+  const prevBtn = document.getElementById("calPrev");
+  const nextBtn = document.getElementById("calNext");
+  if (!prevBtn || prevBtn.dataset.bound) {
+    renderCalendar();
+    return;
+  }
+  prevBtn.dataset.bound = "1";
+
+  prevBtn.addEventListener("click", () => {
+    calMonth--;
+    if (calMonth < 0) { calMonth = 11; calYear--; }
+    renderCalendar();
+  });
+  nextBtn.addEventListener("click", () => {
+    calMonth++;
+    if (calMonth > 11) { calMonth = 0; calYear++; }
+    renderCalendar();
+  });
+  document.getElementById("journalDayClose")?.addEventListener("click", closeJournalDay);
+
+  renderCalendar();
+}
+
+function getNotesForDate(rawDate) {
+  // rawDate: "YYMMDD" — 캘린더는 YYYYMMDD로 비교
+  const results = [];
+  people.forEach((person) => {
+    (person.notes || []).forEach((note, idx) => {
+      if (!note.rawDate) return;
+      // rawDate는 6자리 YYMMDD → 풀 날짜로 변환해 비교
+      const d = parseRawDateToYYYYMMDD(note.rawDate);
+      if (d === rawDate) {
+        results.push({ person, note, noteIndex: idx });
+      }
+    });
+  });
+  return results;
+}
+
+function parseRawDateToYYYYMMDD(raw6) {
+  // raw6: "YYMMDD" → "YYYYMMDD"
+  if (!raw6 || raw6.length !== 6) return "";
+  const yy = Number(raw6.slice(0, 2));
+  const currentYY = new Date().getFullYear() % 100;
+  const yyyy = yy <= currentYY ? 2000 + yy : 1900 + yy;
+  return `${yyyy}${raw6.slice(2)}`;
+}
+
+function calDateKey(year, month1, day) {
+  // month1: 1-indexed
+  return `${year}${String(month1).padStart(2, "0")}${String(day).padStart(2, "0")}`;
+}
+
+function renderCalendar() {
+  const titleEl = document.getElementById("calTitle");
+  const gridEl = document.getElementById("calGrid");
+  if (!titleEl || !gridEl) return;
+
+  const month1 = calMonth + 1;
+  titleEl.textContent = `${calYear}년 ${month1}월`;
+
+  // 이 달에 상담내역이 있는 날짜 집합
+  const datesWithNotes = new Set();
+  people.forEach((person) => {
+    (person.notes || []).forEach((note) => {
+      const full = parseRawDateToYYYYMMDD(note.rawDate);
+      if (full.startsWith(`${calYear}${String(month1).padStart(2, "0")}`)) {
+        datesWithNotes.add(Number(full.slice(6)));
+      }
+    });
+  });
+
+  const firstDay = new Date(calYear, calMonth, 1).getDay(); // 0=일
+  const lastDate = new Date(calYear, calMonth + 1, 0).getDate();
+  const today = new Date();
+
+  let html = `<div class="cal-weekdays"><span>일</span><span>월</span><span>화</span><span>수</span><span>목</span><span>금</span><span>토</span></div><div class="cal-days">`;
+
+  for (let i = 0; i < firstDay; i++) html += `<span class="cal-day empty"></span>`;
+
+  for (let d = 1; d <= lastDate; d++) {
+    const isToday = today.getFullYear() === calYear && today.getMonth() === calMonth && today.getDate() === d;
+    const hasDot = datesWithNotes.has(d);
+    const key = calDateKey(calYear, month1, d);
+    html += `<button type="button" class="cal-day${isToday ? " cal-today" : ""}${hasDot ? " cal-has-note" : ""}" data-key="${key}" data-day="${d}">${d}${hasDot ? '<span class="cal-dot"></span>' : ""}</button>`;
+  }
+
+  html += `</div>`;
+  gridEl.innerHTML = html;
+
+  gridEl.querySelectorAll(".cal-day[data-key]").forEach((btn) => {
+    btn.addEventListener("click", () => openJournalDay(btn.dataset.key, Number(btn.dataset.day)));
+  });
+}
+
+function openJournalDay(dateKey, day) {
+  const panel = document.getElementById("journalDayPanel");
+  const titleEl = document.getElementById("journalDayTitle");
+  const notesEl = document.getElementById("journalDayNotes");
+  const select = document.getElementById("journalPersonSelect");
+  if (!panel || !titleEl || !notesEl || !select) return;
+
+  const month1 = calMonth + 1;
+  titleEl.textContent = `${calYear}년 ${month1}월 ${day}일`;
+
+  const entries = getNotesForDate(dateKey);
+  if (entries.length === 0) {
+    notesEl.innerHTML = `<p class="empty">이 날의 상담내역이 없습니다.</p>`;
+  } else {
+    const grouped = {};
+    entries.forEach(({ person, note }) => {
+      if (!grouped[person.id]) grouped[person.id] = { name: person.name, notes: [] };
+      grouped[person.id].notes.push(note);
+    });
+    notesEl.innerHTML = Object.values(grouped).map((g) => `
+      <div class="journal-entry">
+        <div class="journal-entry-name">${escapeHtml(g.name)}</div>
+        <div class="notes-card">
+          ${g.notes.map((n) => `
+            <div class="note-item">
+              <div class="note-text">${escapeHtml(n.content).replace(/\n/g, "<br>")}</div>
+            </div>`).join("")}
+        </div>
+      </div>`).join("");
+  }
+
+  // 고객 선택 셀렉트 업데이트
+  const visiblePeople = people.filter((p) => !p.hidden).sort((a, b) => a.name.localeCompare(b.name, "ko"));
+  select.innerHTML = `<option value="">고객 선택</option>` +
+    visiblePeople.map((p) => `<option value="${escapeHtml(p.id)}">${escapeHtml(p.name)}</option>`).join("");
+
+  // 추가 버튼 (중복 바인딩 방지)
+  const addBtn = document.getElementById("journalAddNote");
+  const newBtn = addBtn.cloneNode(true);
+  addBtn.parentNode.replaceChild(newBtn, addBtn);
+  newBtn.addEventListener("click", () => addJournalNote(dateKey));
+
+  panel.hidden = false;
+  panel.scrollIntoView({ behavior: "smooth", block: "nearest" });
+}
+
+function addJournalNote(dateKey) {
+  const personId = document.getElementById("journalPersonSelect")?.value;
+  const content = document.getElementById("journalContent")?.value.trim();
+
+  if (!personId) { alert("고객을 선택하세요."); return; }
+  if (!content) { alert("상담내용을 입력하세요."); return; }
+
+  const person = people.find((p) => p.id === personId);
+  if (!person) return;
+
+  // dateKey: "YYYYMMDD" → rawDate 6자리 YY+MMDD
+  const raw6 = dateKey.slice(2); // 8자리→6자리
+  const formattedDate = formatConsultDate(raw6) || dateKey;
+
+  person.notes = Array.isArray(person.notes) ? person.notes : [];
+  person.notes.push({ rawDate: raw6, date: formattedDate, content });
+  person.updatedAt = formatNow();
+  savePeople();
+
+  document.getElementById("journalContent").value = "";
+  openJournalDay(dateKey, Number(dateKey.slice(6)));
+  renderCalendar();
+}
+
+function closeJournalDay() {
+  const panel = document.getElementById("journalDayPanel");
+  if (panel) panel.hidden = true;
+}
