@@ -624,24 +624,30 @@ button:active {
 
 /* ── 노트 ── */
 .notes-section h4 {
-  margin: 0 0 4px;
+  margin: 0 0 10px;
   font-size: 0.93rem;
   font-weight: 700;
   color: var(--brand-strong);
 }
 
-.note-item {
-  padding: 14px 16px;
+.notes-card {
   border: 1px solid var(--line);
   border-radius: 14px;
-  margin-top: 10px;
+  overflow: hidden;
   background: var(--surface);
-  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.note-item {
+  padding: 14px 16px;
+  background: transparent;
+}
+
+.note-item + .note-item {
+  border-top: 1px solid var(--line);
 }
 
 .note-item:hover {
-  border-color: var(--line-strong);
-  box-shadow: 0 2px 10px rgba(13, 148, 136, 0.08);
+  background: var(--brand-soft);
 }
 
 .note-head {

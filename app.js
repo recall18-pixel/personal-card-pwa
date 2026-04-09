@@ -582,7 +582,7 @@ function renderDetailPanel() {
   const notesHtml = (person.notes || [])
     .map((note, index) => ({ ...note, index }))
     .slice()
-    .reverse()
+    .sort((a, b) => (b.rawDate || "").localeCompare(a.rawDate || ""))
     .map(createNoteItem)
     .join("");
 
@@ -616,7 +616,9 @@ function renderDetailPanel() {
 
     <div class="notes-section">
       <h4>상담내역</h4>
-      ${notesHtml || "<p class='empty'>상담내역이 없습니다.</p>"}
+      ${notesHtml
+        ? `<div class="notes-card">${notesHtml}</div>`
+        : "<p class='empty'>상담내역이 없습니다.</p>"}
     </div>
 
     <hr />
