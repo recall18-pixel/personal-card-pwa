@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="theme-color" content="#4f46e5" />
+  <meta name="theme-color" content="#0d9488" />
   <title>임대관리 | 개인카드 PWA</title>
   <link rel="manifest" href="manifest.json" />
   <link rel="stylesheet" href="style.css" />
@@ -23,28 +23,334 @@
       <div class="page-title-row">
         <div>
           <h1 class="page-title">임대관리</h1>
-          <p class="page-desc">임대 관련 정보를 관리합니다.</p>
+          <p class="page-desc">임대 물건과 관련 정보를 관리합니다.</p>
         </div>
       </div>
     </header>
 
     <main class="container">
-      <section class="panel">
-        <h2>임대관리 준비</h2>
-        <p class="help-text">이 화면은 임대 정보, 계약 메모, 일정 관리 기능을 추가하기 위한 전용 공간입니다.</p>
-      </section>
 
-      <section class="panel">
-        <h2>다음 작업 후보</h2>
-        <div class="simple-list">
-          <div class="simple-item">물건 목록 관리</div>
-          <div class="simple-item">계약 일정 기록</div>
-          <div class="simple-item">임차인 / 집주인 메모</div>
-        </div>
-      </section>
+      <!-- ── 물건 목록 뷰 ── -->
+      <div id="rentalListView">
+        <section class="panel">
+          <div class="panel-header">
+            <h2>임대 물건 목록</h2>
+            <button type="button" id="showAddRentalBtn" class="toolbar-button">+ 물건 추가</button>
+          </div>
+
+          <div id="addRentalForm" class="project-add-form" hidden>
+            <input type="text" id="newRentalName" placeholder="물건명 (예: 서울 강남 오피스텔)" maxlength="60"
+              lang="ko" autocapitalize="off" autocorrect="off" spellcheck="false" />
+            <div class="form-actions" style="margin-top:8px">
+              <button type="button" id="saveRentalBtn">추가</button>
+              <button type="button" id="cancelRentalBtn" class="secondary-button">취소</button>
+            </div>
+          </div>
+
+          <div id="rentalList" class="project-list"></div>
+        </section>
+      </div>
+
+      <!-- ── 물건 상세 뷰 ── -->
+      <div id="rentalDetailView" hidden>
+        <section class="panel">
+          <div class="panel-header">
+            <h2 id="rentalDetailTitle"></h2>
+            <div style="display:flex;gap:6px">
+              <button type="button" id="deleteRentalBtn" class="danger-button toolbar-button">삭제</button>
+              <button type="button" id="backToRentalListBtn" class="secondary-button toolbar-button">← 목록</button>
+            </div>
+          </div>
+
+          <!-- 하위 탭 -->
+          <nav class="sub-tab-nav" id="rentalSubTabNav">
+            <button type="button" class="sub-tab active" data-tab="info">물건정보</button>
+            <button type="button" class="sub-tab" data-tab="visit">방문일지</button>
+            <button type="button" class="sub-tab" data-tab="memo">메모</button>
+          </nav>
+
+          <!-- 물건정보 탭 -->
+          <div id="rentalTab-info" class="sub-tab-content">
+            <div class="rental-info-form">
+              <div class="rental-field">
+                <label>주소</label>
+                <input type="text" id="rfAddress" placeholder="주소 입력"
+                  lang="ko" autocapitalize="off" autocorrect="off" spellcheck="false" />
+              </div>
+              <div class="rental-field">
+                <label>유형</label>
+                <select id="rfType">
+                  <option value="">선택</option>
+                  <option>아파트</option>
+                  <option>오피스텔</option>
+                  <option>빌라/연립</option>
+                  <option>단독주택</option>
+                  <option>상가</option>
+                  <option>사무실</option>
+                  <option>기타</option>
+                </select>
+              </div>
+              <div class="rental-field">
+                <label>보증금</label>
+                <input type="text" id="rfDeposit" placeholder="예: 5,000만원"
+                  lang="ko" autocorrect="off" spellcheck="false" />
+              </div>
+              <div class="rental-field">
+                <label>월세/관리비</label>
+                <input type="text" id="rfMonthly" placeholder="예: 50만원 / 5만원"
+                  lang="ko" autocorrect="off" spellcheck="false" />
+              </div>
+              <div class="rental-field">
+                <label>계약 상태</label>
+                <select id="rfStatus">
+                  <option value="">선택</option>
+                  <option>공실</option>
+                  <option>임대중</option>
+                  <option>계약예정</option>
+                  <option>매물등록</option>
+                </select>
+              </div>
+              <div class="rental-field">
+                <label>특이사항</label>
+                <textarea id="rfNote" placeholder="특이사항 입력" rows="3"
+                  lang="ko" autocapitalize="off" autocorrect="off" spellcheck="false"></textarea>
+              </div>
+            </div>
+            <div class="detail-action-row">
+              <button type="button" id="saveRentalInfoBtn">저장</button>
+            </div>
+          </div>
+
+          <!-- 방문일지 탭 -->
+          <div id="rentalTab-visit" class="sub-tab-content" hidden>
+            <div id="rentalVisitList" class="project-notes-list" style="margin-bottom:.8rem"></div>
+            <textarea id="rentalVisitInput" placeholder="방문 내용, 상담 내용 등을 입력하세요" rows="3"
+              lang="ko" autocapitalize="off" autocorrect="off" spellcheck="false"
+              style="width:100%;font-size:.9rem;padding:.55rem .75rem;border:1.5px solid var(--border);border-radius:.5rem;font-family:inherit;box-sizing:border-box;resize:vertical"></textarea>
+            <div class="detail-action-row" style="margin-top:.4rem">
+              <button type="button" id="addVisitBtn">기록 추가</button>
+            </div>
+          </div>
+
+          <!-- 메모 탭 -->
+          <div id="rentalTab-memo" class="sub-tab-content" hidden>
+            <div id="rentalMemoList" class="project-notes-list" style="margin-bottom:.8rem"></div>
+            <textarea id="rentalMemoInput" placeholder="자유롭게 메모하세요" rows="3"
+              lang="ko" autocapitalize="off" autocorrect="off" spellcheck="false"
+              style="width:100%;font-size:.9rem;padding:.55rem .75rem;border:1.5px solid var(--border);border-radius:.5rem;font-family:inherit;box-sizing:border-box;resize:vertical"></textarea>
+            <div class="detail-action-row" style="margin-top:.4rem">
+              <button type="button" id="addMemoBtn">메모 추가</button>
+            </div>
+          </div>
+
+        </section>
+      </div>
+
     </main>
   </div>
 
   <script src="common.js"></script>
+  <script>
+  (function () {
+    const STORAGE_KEY = "rentals_v1";
+
+    function load() {
+      try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]"); }
+      catch { return []; }
+    }
+    function save(data) { localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); }
+
+    function escHtml(v) {
+      return String(v).replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;");
+    }
+
+    function formatNow() {
+      const d = new Date();
+      return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")} ${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")}`;
+    }
+
+    let rentals = load();
+    let currentId = null;
+    let activeTab = "info";
+
+    // ── 목록 렌더 ──
+    function renderList() {
+      const el = document.getElementById("rentalList");
+      if (!el) return;
+      if (rentals.length === 0) {
+        el.innerHTML = `<p class="empty">임대 물건이 없습니다. 위에서 추가해보세요.</p>`;
+        return;
+      }
+      el.innerHTML = "";
+      rentals.slice().reverse().forEach(item => {
+        const card = document.createElement("div");
+        card.className = "project-card";
+        const statusLabel = item.info?.status ? ` · ${escHtml(item.info.status)}` : "";
+        card.innerHTML = `
+          <button type="button" class="project-name-btn">${escHtml(item.name)}<span style="font-size:.8rem;font-weight:400;color:var(--text-light)">${statusLabel}</span></button>
+        `;
+        card.querySelector(".project-name-btn").addEventListener("click", () => openDetail(item.id));
+        el.appendChild(card);
+      });
+    }
+
+    // ── 상세 열기 ──
+    function openDetail(id) {
+      currentId = id;
+      const item = rentals.find(r => r.id === id);
+      if (!item) return;
+      document.getElementById("rentalListView").hidden = true;
+      document.getElementById("rentalDetailView").hidden = false;
+      document.getElementById("rentalDetailTitle").textContent = item.name;
+      switchTab("info");
+      fillInfoForm(item);
+    }
+
+    function fillInfoForm(item) {
+      const info = item.info || {};
+      document.getElementById("rfAddress").value  = info.address  || "";
+      document.getElementById("rfType").value     = info.type     || "";
+      document.getElementById("rfDeposit").value  = info.deposit  || "";
+      document.getElementById("rfMonthly").value  = info.monthly  || "";
+      document.getElementById("rfStatus").value   = info.status   || "";
+      document.getElementById("rfNote").value     = info.note     || "";
+    }
+
+    // ── 탭 전환 ──
+    function switchTab(tab) {
+      activeTab = tab;
+      document.querySelectorAll(".sub-tab").forEach(btn => {
+        btn.classList.toggle("active", btn.dataset.tab === tab);
+      });
+      ["info","visit","memo"].forEach(t => {
+        document.getElementById(`rentalTab-${t}`).hidden = (t !== tab);
+      });
+      if (tab === "visit") renderNotesList("visit");
+      if (tab === "memo")  renderNotesList("memo");
+    }
+
+    // ── 방문일지/메모 렌더 ──
+    function renderNotesList(type) {
+      const item = rentals.find(r => r.id === currentId);
+      if (!item) return;
+      const notes = (item[type] || []);
+      const el = document.getElementById(`rentalTab-${type}`).querySelector(`#rental${type === "visit" ? "Visit" : "Memo"}List`);
+      if (!el) return;
+      if (notes.length === 0) {
+        el.innerHTML = `<p class="empty">아직 기록이 없습니다.</p>`;
+        return;
+      }
+      el.innerHTML = notes.slice().reverse().map((n, ri) => {
+        const realIdx = notes.length - 1 - ri;
+        return `<div style="padding:.4rem .25rem;display:flex;align-items:flex-start;gap:.5rem">
+          <div style="flex:1">
+            <div style="font-size:.75rem;color:var(--text-light)">${escHtml(n.date)}</div>
+            <div style="font-size:.9rem;line-height:1.6;word-break:break-all">${escHtml(n.content).replace(/\n/g,"<br>")}</div>
+          </div>
+          <button type="button" class="mini-button" data-del="${realIdx}" data-type="${type}">삭제</button>
+        </div>`;
+      }).join("");
+
+      el.querySelectorAll("[data-del]").forEach(btn => {
+        btn.addEventListener("click", () => {
+          const t = btn.dataset.type;
+          const idx = Number(btn.dataset.del);
+          const r = rentals.find(r => r.id === currentId);
+          if (!r || !confirm("삭제할까요?")) return;
+          r[t].splice(idx, 1);
+          save(rentals);
+          renderNotesList(t);
+        });
+      });
+    }
+
+    function addNote(type) {
+      const inputId = type === "visit" ? "rentalVisitInput" : "rentalMemoInput";
+      const content = document.getElementById(inputId).value.trim();
+      if (!content) return;
+      const item = rentals.find(r => r.id === currentId);
+      if (!item) return;
+      if (!Array.isArray(item[type])) item[type] = [];
+      item[type].push({ date: formatNow(), content });
+      save(rentals);
+      document.getElementById(inputId).value = "";
+      renderNotesList(type);
+    }
+
+    // ── 이벤트 ──
+    document.getElementById("showAddRentalBtn").addEventListener("click", () => {
+      const form = document.getElementById("addRentalForm");
+      form.hidden = !form.hidden;
+      if (!form.hidden) document.getElementById("newRentalName").focus();
+    });
+
+    document.getElementById("cancelRentalBtn").addEventListener("click", () => {
+      document.getElementById("addRentalForm").hidden = true;
+      document.getElementById("newRentalName").value = "";
+    });
+
+    document.getElementById("saveRentalBtn").addEventListener("click", () => {
+      const name = document.getElementById("newRentalName").value.trim();
+      if (!name) { alert("물건명을 입력하세요."); return; }
+      rentals.push({ id: String(Date.now()), name, info: {}, visit: [], memo: [], createdAt: formatNow() });
+      save(rentals);
+      document.getElementById("newRentalName").value = "";
+      document.getElementById("addRentalForm").hidden = true;
+      renderList();
+    });
+
+    document.getElementById("newRentalName").addEventListener("keydown", e => {
+      if (e.key === "Enter") document.getElementById("saveRentalBtn").click();
+    });
+
+    document.getElementById("backToRentalListBtn").addEventListener("click", () => {
+      document.getElementById("rentalDetailView").hidden = true;
+      document.getElementById("rentalListView").hidden = false;
+      currentId = null;
+      renderList();
+    });
+
+    document.getElementById("deleteRentalBtn").addEventListener("click", () => {
+      const item = rentals.find(r => r.id === currentId);
+      if (!item || !confirm(`"${item.name}" 물건을 삭제할까요?`)) return;
+      rentals = rentals.filter(r => r.id !== currentId);
+      save(rentals);
+      document.getElementById("backToRentalListBtn").click();
+    });
+
+    document.getElementById("saveRentalInfoBtn").addEventListener("click", () => {
+      const item = rentals.find(r => r.id === currentId);
+      if (!item) return;
+      item.info = {
+        address: document.getElementById("rfAddress").value.trim(),
+        type:    document.getElementById("rfType").value,
+        deposit: document.getElementById("rfDeposit").value.trim(),
+        monthly: document.getElementById("rfMonthly").value.trim(),
+        status:  document.getElementById("rfStatus").value,
+        note:    document.getElementById("rfNote").value.trim(),
+      };
+      save(rentals);
+      renderList();
+      alert("저장됐습니다.");
+    });
+
+    document.getElementById("addVisitBtn").addEventListener("click", () => addNote("visit"));
+    document.getElementById("addMemoBtn").addEventListener("click",  () => addNote("memo"));
+
+    document.getElementById("rentalSubTabNav").addEventListener("click", e => {
+      const tab = e.target.closest(".sub-tab")?.dataset.tab;
+      if (tab) switchTab(tab);
+    });
+
+    document.getElementById("rentalVisitInput").addEventListener("keydown", e => {
+      if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); addNote("visit"); }
+    });
+    document.getElementById("rentalMemoInput").addEventListener("keydown", e => {
+      if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); addNote("memo"); }
+    });
+
+    renderList();
+  })();
+  </script>
 </body>
 </html>

@@ -1118,6 +1118,7 @@ function getNotesForDate(rawDate) {
   // rawDate: "YYMMDD" — 캘린더는 YYYYMMDD로 비교
   const results = [];
   people.forEach((person) => {
+    if (person.hidden) return;
     (person.notes || []).forEach((note, idx) => {
       if (!note.rawDate) return;
       // rawDate는 6자리 YYMMDD → 풀 날짜로 변환해 비교
@@ -1155,6 +1156,7 @@ function renderCalendar() {
   // 이 달에 상담내역이 있는 날짜 집합
   const datesWithNotes = new Set();
   people.forEach((person) => {
+    if (person.hidden) return;
     (person.notes || []).forEach((note) => {
       const full = parseRawDateToYYYYMMDD(note.rawDate);
       if (full.startsWith(`${calYear}${String(month1).padStart(2, "0")}`)) {
