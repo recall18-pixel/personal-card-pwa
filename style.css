@@ -335,11 +335,19 @@ form {
 
 input,
 textarea,
-select,
-button {
+select {
   width: 100%;
   font-size: 0.95rem;
   font-family: inherit;
+}
+button {
+  font-size: 0.95rem;
+  font-family: inherit;
+}
+input[type="checkbox"],
+input[type="radio"] {
+  width: auto !important;
+  min-width: 0;
 }
 
 input,
@@ -1208,6 +1216,7 @@ body.sheet-open {
   padding: 0;
   line-height: 1;
   flex-shrink: 0;
+  width: auto !important;
 }
 .tdl-actions {
   display: flex;
