@@ -163,13 +163,13 @@
               </div>
               <div class="rental-field">
                 <label>보증금</label>
-                <input type="text" id="rc-deposit" placeholder="예: 500만원"
-                  lang="ko" autocorrect="off" spellcheck="false" />
+                <input type="text" id="rc-deposit" placeholder="예: 3,000,000"
+                  lang="ko" autocorrect="off" spellcheck="false" inputmode="numeric" />
               </div>
               <div class="rental-field">
                 <label>월세</label>
-                <input type="text" id="rc-monthly" placeholder="예: 40만원"
-                  lang="ko" autocorrect="off" spellcheck="false" />
+                <input type="text" id="rc-monthly" placeholder="예: 500,000"
+                  lang="ko" autocorrect="off" spellcheck="false" inputmode="numeric" />
               </div>
               <div class="rental-field">
                 <label>매월 납부일</label>
@@ -201,7 +201,7 @@
                 </div>
                 <div style="flex:1;min-width:90px">
                   <label style="font-size:.78rem;color:var(--text-light);display:block;margin-bottom:.2rem">새 월세</label>
-                  <input type="text" id="rh-monthly" placeholder="예: 45만원" lang="ko" autocorrect="off" spellcheck="false" />
+                  <input type="text" id="rh-monthly" placeholder="예: 500,000" lang="ko" autocorrect="off" spellcheck="false" inputmode="numeric" />
                 </div>
                 <div style="flex:2;min-width:130px">
                   <label style="font-size:.78rem;color:var(--text-light);display:block;margin-bottom:.2rem">비고</label>
@@ -283,15 +283,21 @@
     }
     function pad(n) { return String(n).padStart(2,"0"); }
 
-    // 숫자 → 회계단위 (만원/천원)
+    // 숫자 → 회계단위 (원)
     function toAccounting(raw) {
       if (!raw) return "";
-      const s = String(raw).replace(/[,원만천\s]/g, "");
-      const n = parseFloat(s);
-      if (isNaN(n)) return raw;
-      if (n >= 10000) return `${(n/10000).toLocaleString("ko",{maximumFractionDigits:2})}억원`;
-      if (n >= 1)     return `${n.toLocaleString("ko")}만원`;
-      return raw;
+      const s = String(raw).trim();
+      // 구형식 호환: "500만원", "45만원" 등
+      const mMan = s.replace(/,/g,"").match(/(\d+\.?\d*)\s*만원?/);
+      if (mMan) {
+        const n = parseFloat(mMan[1]) * 10000;
+        return `${Math.round(n).toLocaleString("ko")}원`;
+      }
+      // 신형식: 3,000,000 또는 3000000원
+      const noUnit = s.replace(/[,원\s]/g, "");
+      const n = parseFloat(noUnit);
+      if (!isNaN(n)) return `${Math.round(n).toLocaleString("ko")}원`;
+      return s;
     }
 
     // 숫자 입력 자동 콤마
@@ -453,14 +459,19 @@
         <span class="report-item"><span class="report-label">전체</span><span class="report-value">${rooms.length}실</span></span>
         <span class="report-item"><span class="report-label">입주</span><span class="report-value">${occupied.length}실</span></span>
         <span class="report-item"><span class="report-label">공실</span><span class="report-value">${rooms.length - occupied.length}실</span></span>
-        ${totalMonthly > 0 ? `<span class="report-item"><span class="report-label">월세합계</span><span class="report-value">${totalMonthly.toLocaleString()}만원</span></span>` : ""}
+        ${totalMonthly > 0 ? `<span class="report-item"><span class="report-label">월세합계</span><span class="report-value">${totalMonthly.toLocaleString()}원</span></span>` : ""}
       </div>`;
     }
 
     function parseMoneyVal(s) {
       if (!s) return NaN;
-      const clean = s.replace(/[,\s]/g,"");
-      const m = clean.match(/^[\d.]+/);
+      const clean = String(s).replace(/\s/g, "");
+      // 구형식 호환: "500만원", "45만원" 등
+      const mMan = clean.replace(/,/g,"").match(/(\d+\.?\d*)\s*만원?/);
+      if (mMan) return parseFloat(mMan[1]) * 10000;
+      // 신형식: 3,000,000원 또는 3000000
+      const noUnit = clean.replace(/[,원]/g, "");
+      const m = noUnit.match(/^[\d.]+/);
       return m ? parseFloat(m[0]) : NaN;
     }
 
@@ -569,7 +580,7 @@
             <span class="report-item"><span class="report-label">전체</span><span class="report-value">${months.length}개월</span></span>
             <span class="report-item"><span class="report-label">납부</span><span class="report-value">${paidCount}회</span></span>
             <span class="report-item"><span class="report-label" style="color:#ef4444">미납</span><span class="report-value" style="color:#ef4444">${unpaidCount}개월</span></span>
-            ${unpaidTotal !== null && unpaidTotal > 0 ? `<span class="report-item"><span class="report-label" style="color:#ef4444">미납금</span><span class="report-value" style="color:#ef4444">${unpaidTotal.toLocaleString()}만원</span></span>` : ""}
+            ${unpaidTotal !== null && unpaidTotal > 0 ? `<span class="report-item"><span class="report-label" style="color:#ef4444">미납금</span><span class="report-value" style="color:#ef4444">${unpaidTotal.toLocaleString()}원</span></span>` : ""}
           </div>`;
         }
       }
@@ -591,7 +602,7 @@
             </div>
           </div>`;
         } else {
-          const amt = isNaN(monthly) ? "" : ` · ${monthly.toLocaleString()}만원`;
+          const amt = isNaN(monthly) ? "" : ` · ${monthly.toLocaleString()}원`;
           html += `<div class="payment-item payment-unpaid">
             <div class="payment-main">
               <div class="payment-month" style="color:#ef4444">${esc(label)}</div>
@@ -864,7 +875,7 @@
     });
 
     // 금액 필드 자동 콤마
-    ["rc-deposit","rc-monthly"].forEach(id => {
+    ["rc-deposit","rc-monthly","rh-monthly"].forEach(id => {
       const el = document.getElementById(id);
       if (el) addCommaInput(el);
     });

@@ -437,9 +437,52 @@ button:active {
 
 /* ── 고객 목록 ── */
 .person-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+/* 초성 그룹 헤더 */
+.chosung-group-header {
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+  width: 100%;
+  background: var(--bg);
+  border: none;
+  border-bottom: 2px solid var(--brand);
+  padding: .45rem .75rem;
+  margin-top: .75rem;
+  border-radius: .5rem .5rem 0 0;
+  cursor: pointer;
+  text-align: left;
+  transition: background .15s;
+}
+.chosung-group-header:first-child { margin-top: 0; }
+.chosung-group-header:hover { background: #e4f0ef; }
+
+.chosung-label {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--brand-strong);
+  min-width: 1.6rem;
+}
+.chosung-count {
+  font-size: .8rem;
+  color: var(--text-light);
+  flex: 1;
+}
+.chosung-arrow {
+  font-size: .75rem;
+  color: var(--brand);
+}
+
+/* 그룹 내 카드 그리드 */
+.person-list-group-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
+  gap: 10px;
+  padding: 10px 0 4px;
 }
 
 .person-card {

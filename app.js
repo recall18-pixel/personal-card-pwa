@@ -495,6 +495,27 @@ function toggleHidePerson(personId) {
   }
 }
 
+// ── 초성 추출 ──
+function getChosung(name) {
+  const CHOSUNG = ["ㄱ","ㄲ","ㄴ","ㄷ","ㄸ","ㄹ","ㅁ","ㅂ","ㅃ","ㅅ","ㅆ","ㅇ","ㅈ","ㅉ","ㅊ","ㅋ","ㅌ","ㅍ","ㅎ"];
+  const ch = (name || "").trim().charCodeAt(0);
+  if (ch >= 0xAC00 && ch <= 0xD7A3) {
+    return CHOSUNG[Math.floor((ch - 0xAC00) / 588)];
+  }
+  if (ch >= 65 && ch <= 90)  return "A-Z";
+  if (ch >= 97 && ch <= 122) return "A-Z";
+  return "#";
+}
+
+// 초성 그룹 열림 상태 저장 (localStorage)
+const GROUP_STATE_KEY = "customer_group_state_v1";
+function loadGroupState() {
+  try { return JSON.parse(localStorage.getItem(GROUP_STATE_KEY) || "{}"); } catch { return {}; }
+}
+function saveGroupState(state) {
+  localStorage.setItem(GROUP_STATE_KEY, JSON.stringify(state));
+}
+
 function renderList() {
   const listEl = document.getElementById("personList");
   const countEl = document.getElementById("personCount");
@@ -503,7 +524,6 @@ function renderList() {
   listEl.innerHTML = "";
 
   const visiblePeople = people.filter((p) => !p.hidden);
-  const hiddenPeople = people.filter((p) => p.hidden);
   const displayList = showHidden ? people : visiblePeople;
 
   if (countEl) {
@@ -517,10 +537,61 @@ function renderList() {
     return;
   }
 
-  displayList
-    .slice()
-    .sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt))
-    .forEach((person) => {
+  // 초성 기준 정렬 (같은 초성 내에서는 이름 가나다순)
+  const CHOSUNG_ORDER = ["ㄱ","ㄲ","ㄴ","ㄷ","ㄸ","ㄹ","ㅁ","ㅂ","ㅃ","ㅅ","ㅆ","ㅇ","ㅈ","ㅉ","ㅊ","ㅋ","ㅌ","ㅍ","ㅎ","A-Z","#"];
+  const sorted = displayList.slice().sort((a, b) => {
+    const ca = getChosung(a.name), cb = getChosung(b.name);
+    const ia = CHOSUNG_ORDER.indexOf(ca), ib = CHOSUNG_ORDER.indexOf(cb);
+    if (ia !== ib) return ia - ib;
+    return (a.name || "").localeCompare(b.name || "", "ko");
+  });
+
+  // 그룹화
+  const groups = [];
+  const groupMap = {};
+  sorted.forEach(person => {
+    const ch = getChosung(person.name);
+    if (!groupMap[ch]) {
+      groupMap[ch] = { chosung: ch, people: [] };
+      groups.push(groupMap[ch]);
+    }
+    groupMap[ch].people.push(person);
+  });
+
+  const groupState = loadGroupState();
+
+  groups.forEach(group => {
+    const { chosung, people: gPeople } = group;
+    // 기본: 처음엔 모두 펼침. 저장된 상태가 있으면 따름
+    const isOpen = groupState[chosung] !== false;
+
+    // 그룹 헤더
+    const header = document.createElement("button");
+    header.type = "button";
+    header.className = "chosung-group-header";
+    header.dataset.chosung = chosung;
+    header.innerHTML = `
+      <span class="chosung-label">${chosung}</span>
+      <span class="chosung-count">${gPeople.length}명</span>
+      <span class="chosung-arrow">${isOpen ? "▲" : "▼"}</span>
+    `;
+
+    // 그룹 카드 컨테이너
+    const grid = document.createElement("div");
+    grid.className = "person-list-group-grid";
+    if (!isOpen) grid.style.display = "none";
+
+    header.addEventListener("click", () => {
+      const opened = grid.style.display !== "none";
+      grid.style.display = opened ? "none" : "";
+      header.querySelector(".chosung-arrow").textContent = opened ? "▼" : "▲";
+      const state = loadGroupState();
+      state[chosung] = !opened;
+      saveGroupState(state);
+    });
+
+    // 카드 렌더
+    gPeople.forEach(person => {
       const card = document.createElement("div");
       const isChecked = selectedDeleteIds.has(person.id);
       const isActive = selectedPersonId === person.id;
@@ -558,8 +629,12 @@ function renderList() {
         updateDeleteToolbar();
       });
 
-      listEl.appendChild(card);
+      grid.appendChild(card);
     });
+
+    listEl.appendChild(header);
+    listEl.appendChild(grid);
+  });
 }
 
 function renderDetailPanel() {
