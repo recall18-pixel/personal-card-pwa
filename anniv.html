@@ -160,6 +160,56 @@
       }
     }
 
+    function p2(n) { return String(n).padStart(2, "0"); }
+
+    // 기념일 날짜 → 양력 Date 반환
+    function getAnnivSolarDate(item, year) {
+      if (item.calType === "lunar") {
+        const s = lunarToSolar(year, item.month, item.day);
+        s.setHours(0,0,0,0);
+        return s;
+      }
+      return new Date(year, item.month - 1, item.day);
+    }
+
+    // 기념일 → 약속관리 자동 등록 (현재 연도 + 향후 2년)
+    function syncAnnivToSchedule(item) {
+      const SCHED_KEY = "schedule_v1";
+      let sch = {};
+      try { sch = JSON.parse(localStorage.getItem(SCHED_KEY) || "{}"); } catch {}
+      const today = new Date(); today.setHours(0,0,0,0);
+      const thisYear = today.getFullYear();
+      for (let y = thisYear; y <= thisYear + 2; y++) {
+        const solar = getAnnivSolarDate(item, y);
+        const key = `${solar.getFullYear()}${p2(solar.getMonth()+1)}${p2(solar.getDate())}`;
+        if (!sch[key]) sch[key] = [];
+        // 동일 기념일 지운 후 재등록 (중복 방지)
+        sch[key] = sch[key].filter(e => e.id !== `anniv_${item.id}_${y}`);
+        const calStr = item.calType === "lunar"
+          ? `음력 ${item.month}월 ${item.day}일`
+          : `${item.month}월 ${item.day}일`;
+        sch[key].push({
+          id:    `anniv_${item.id}_${y}`,
+          time:  "",
+          title: `🎂 ${item.title}`,
+          memo:  `기념일 · ${calStr}${item.note ? " · " + item.note : ""}`
+        });
+      }
+      localStorage.setItem(SCHED_KEY, JSON.stringify(sch));
+    }
+
+    // 기념일 삭제 시 약속관리에서도 제거
+    function removeAnnivFromSchedule(annivId) {
+      const SCHED_KEY = "schedule_v1";
+      let sch = {};
+      try { sch = JSON.parse(localStorage.getItem(SCHED_KEY) || "{}"); } catch {}
+      Object.keys(sch).forEach(k => {
+        sch[k] = sch[k].filter(e => !String(e.id).startsWith(`anniv_${annivId}_`));
+        if (sch[k].length === 0) delete sch[k];
+      });
+      localStorage.setItem(SCHED_KEY, JSON.stringify(sch));
+    }
+
     // 기념일 목록 렌더
     function renderAnnivList() {
       const el = document.getElementById("annivList");
@@ -194,6 +244,7 @@
       el.querySelectorAll(".anniv-del").forEach(btn => {
         btn.addEventListener("click", () => {
           if (!confirm("이 기념일을 삭제할까요?")) return;
+          removeAnnivFromSchedule(btn.dataset.id);
           annivItems = annivItems.filter(x => x.id !== btn.dataset.id);
           saveAnniv(annivItems);
           renderAnnivList();
@@ -248,8 +299,10 @@
       const calType = document.querySelector("input[name='calType']:checked")?.value || "solar";
       if (!title) { alert("기념일 이름을 입력하세요."); return; }
       if (!month || !day) { alert("월과 일을 선택하세요."); return; }
-      annivItems.push({ id: String(Date.now()), title, month, day, note, calType });
+      const newItem = { id: String(Date.now()), title, month, day, note, calType };
+      annivItems.push(newItem);
       saveAnniv(annivItems);
+      syncAnnivToSchedule(newItem);
       document.getElementById("annivTitle").value = "";
       document.getElementById("annivMonth").value = "";
       document.getElementById("annivDay").value   = "";
@@ -265,6 +318,8 @@
     });
 
     renderAnnivList();
+    // 기존 기념일을 약속관리에 동기화 (페이지 진입 시매년 자동 갱신)
+    annivItems.forEach(item => syncAnnivToSchedule(item));
   })();
   </script>
 </body>
