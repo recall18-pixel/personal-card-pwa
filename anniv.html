@@ -19,6 +19,7 @@
         <a class="nav-link" href="tdl.html">TDL</a>
         <a class="nav-link" href="schedule.html">약속관리</a>
         <a class="nav-link current" href="anniv.html">기념일</a>
+        <a class="nav-link" href="settings.html">설정</a>
       </nav>
       <div class="page-title-row">
         <div>
@@ -64,7 +65,7 @@
             </select>
           </div>
           <!-- 음력 선택 시 올해 양력 날짜 미리보기 -->
-          <div id="lunarPreview" hidden style="font-size:.85rem;color:var(--brand-strong);background:var(--bg);border-radius:.45rem;padding:.4rem .7rem;border:1px solid var(--brand)">
+          <div id="lunarPreview" style="display:none;font-size:.85rem;color:var(--brand-strong);background:var(--bg);border-radius:.45rem;padding:.4rem .7rem;border:1px solid var(--brand)">
             📅 <span id="lunarPreviewText"></span>
           </div>
           <input type="text" id="annivNote" placeholder="메모 (선택)" maxlength="50"
@@ -184,7 +185,7 @@
             <div>
               <div class="anniv-title">${escHtml(a.title)} ${calLabel}</div>
               ${a.note ? `<div class="anniv-note">${escHtml(a.note)}</div>` : ""}
-              <div style="font-size:.75rem;color:var(--text-light)">${a.month}월 ${a.day}일${a.calType === "lunar" ? " (음력)" : ""} · ${days === 0 ? "오늘" : days + "일 후"}</div>
+              <div style="font-size:.75rem;color:var(--text-light)">${a.month}월 ${a.day}일${a.calType === "lunar" ? " (음력) → 양력 " + (() => { const s = lunarToSolar(new Date().getFullYear(), a.month, a.day); return (s.getMonth()+1) + "월 " + s.getDate() + "일"; })() : ""} · ${days === 0 ? "오늘" : days + "일 후"}</div>
             </div>
           </div>
           <button type="button" class="mini-button danger-mini anniv-del" data-id="${escHtml(a.id)}">삭제</button>
@@ -225,10 +226,10 @@
         const solar = lunarToSolar(year, month, day);
         const m = solar.getMonth() + 1;
         const d = solar.getDate();
-        previewText.textContent = `음력 ${month}월 ${day}일 → 올해 양력 ${m}월 ${d}일`;
-        preview.hidden = false;
+        previewText.textContent = `음력 ${month}월 ${day}일 → ${year}년 양력 ${m}월 ${d}일`;
+        preview.style.display = "block";
       } else {
-        preview.hidden = true;
+        preview.style.display = "none";
       }
     }
 
@@ -255,7 +256,7 @@
       document.getElementById("annivNote").value  = "";
       document.getElementById("calSolar").checked = true;
       fillDays("");
-      document.getElementById("lunarPreview").hidden = true;
+      document.getElementById("lunarPreview").style.display = "none";
       renderAnnivList();
     });
 

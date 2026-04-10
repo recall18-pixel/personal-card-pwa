@@ -18,8 +18,8 @@
         <a class="nav-link" href="project.html">프로젝트</a>
         <a class="nav-link" href="tdl.html">TDL</a>
         <a class="nav-link" href="schedule.html">약속관리</a>
-        <a class="nav-link current" href="settings.html">설정</a>
         <a class="nav-link" href="anniv.html">기념일</a>
+        <a class="nav-link current" href="settings.html">설정</a>
       </nav>
       <div class="page-title-row">
         <div>
@@ -59,23 +59,129 @@
   </div>
 
   <script src="common.js"></script>
-  <script src="app.js"></script>
   <script>
     (function () {
-      const STORAGE_KEY = "personal_cards_v6";
+      // 백업 대상 스토리지 키 전체
+      const ALL_KEYS = [
+        "personal_cards_v6",
+        "rentals_v1",
+        "projects_v1",
+        "tdl_v1",
+        "schedule_v1",
+        "anniv_v1"
+      ];
 
       function showStorageInfo() {
-        const raw = localStorage.getItem(STORAGE_KEY) || "[]";
-        let count = 0;
-        try { count = JSON.parse(raw).length; } catch {}
-        const bytes = new TextEncoder().encode(raw).length;
-        const kb = (bytes / 1024).toFixed(1);
-
-        document.getElementById("storageInfo").innerHTML = `
-          <div><span class="detail-label">등록 고객 수</span><strong>${count}명</strong></div>
-          <div><span class="detail-label">저장 용량</span><strong>${kb} KB</strong></div>
-        `;
+        let totalBytes = 0;
+        let rows = "";
+        const labels = {
+          "personal_cards_v6": "고객관리",
+          "rentals_v1":        "임대관리",
+          "projects_v1":       "프로젝트",
+          "tdl_v1":            "TDL",
+          "schedule_v1":       "약속관리",
+          "anniv_v1":          "기념일"
+        };
+        ALL_KEYS.forEach(key => {
+          const raw = localStorage.getItem(key) || "";
+          if (!raw) return;
+          const bytes = new TextEncoder().encode(raw).length;
+          totalBytes += bytes;
+          let count = "—";
+          try {
+            const d = JSON.parse(raw);
+            if (Array.isArray(d)) count = d.length + "건";
+            else if (typeof d === "object") count = Object.keys(d).length + "일";
+          } catch {}
+          rows += `<div><span class="detail-label">${labels[key] || key}</span><strong>${count} · ${(bytes/1024).toFixed(1)} KB</strong></div>`;
+        });
+        rows += `<div style="border-top:1px solid var(--border);margin-top:.4rem;padding-top:.4rem"><span class="detail-label">전체 용량</span><strong>${(totalBytes/1024).toFixed(1)} KB</strong></div>`;
+        document.getElementById("storageInfo").innerHTML = rows || "<p class='empty'>저장된 데이터가 없습니다.</p>";
       }
+
+      // ── 전체 백업 내보내기 ──
+      document.getElementById("exportButton").addEventListener("click", () => {
+        try {
+          const backup = { version: 1, exportedAt: new Date().toISOString(), data: {} };
+          ALL_KEYS.forEach(key => {
+            const raw = localStorage.getItem(key);
+            if (raw) {
+              try { backup.data[key] = JSON.parse(raw); } catch { backup.data[key] = raw; }
+            }
+          });
+          const blob = new Blob([JSON.stringify(backup, null, 2)], { type: "application/json" });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement("a");
+          const now = new Date();
+          a.href = url;
+          a.download = `전체백업_${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,"0")}-${String(now.getDate()).padStart(2,"0")}.json`;
+          a.click();
+          URL.revokeObjectURL(url);
+          alert("전체 백업 파일을 다운로드했습니다.");
+        } catch (e) {
+          alert("백업 중 오류가 발생했습니다: " + e.message);
+        }
+      });
+
+      // ── 전체 백업 가져오기 ──
+      document.getElementById("importButton").addEventListener("click", () => {
+        document.getElementById("importFile").click();
+      });
+      document.getElementById("importFile").addEventListener("change", (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = (ev) => {
+          try {
+            const backup = JSON.parse(ev.target.result);
+            const mode = document.getElementById("importMode").value;
+            // 신규 전체 백업 형식 (version 필드 있음)
+            if (backup.version && backup.data) {
+              Object.entries(backup.data).forEach(([key, val]) => {
+                if (mode === "replace") {
+                  localStorage.setItem(key, JSON.stringify(val));
+                } else {
+                  // 병합: 배열이면 ID 기준 중복 제거 후 합치기
+                  const existing = (() => { try { return JSON.parse(localStorage.getItem(key) || "null"); } catch { return null; } })();
+                  if (Array.isArray(val) && Array.isArray(existing)) {
+                    const existIds = new Set(existing.map(x => x.id));
+                    const merged = [...existing, ...val.filter(x => !existIds.has(x.id))];
+                    localStorage.setItem(key, JSON.stringify(merged));
+                  } else if (val && typeof val === "object" && !Array.isArray(val) && existing && typeof existing === "object") {
+                    // schedule_v1 같은 object 형식: 날짜 키 기준 병합
+                    const merged = { ...existing };
+                    Object.entries(val).forEach(([k, v]) => { if (!merged[k]) merged[k] = v; });
+                    localStorage.setItem(key, JSON.stringify(merged));
+                  } else {
+                    localStorage.setItem(key, JSON.stringify(val));
+                  }
+                }
+              });
+            } else if (Array.isArray(backup)) {
+              // 구버전 고객 데이터 배열 형식 호환
+              const key = "personal_cards_v6";
+              if (mode === "replace") {
+                localStorage.setItem(key, JSON.stringify(backup));
+              } else {
+                const existing = (() => { try { return JSON.parse(localStorage.getItem(key) || "[]"); } catch { return []; } })();
+                const existIds = new Set(existing.map(x => x.id));
+                const merged = [...existing, ...backup.filter(x => !existIds.has(x.id))];
+                localStorage.setItem(key, JSON.stringify(merged));
+              }
+            } else {
+              alert("지원하지 않는 백업 파일 형식입니다.");
+              return;
+            }
+            alert("가져오기가 완료됐습니다. 각 페이지로 이동하면 반영됩니다.");
+            showStorageInfo();
+          } catch (err) {
+            alert("파일을 읽는 중 오류가 발생했습니다: " + err.message);
+          } finally {
+            e.target.value = "";
+          }
+        };
+        reader.readAsText(file);
+      });
 
       document.getElementById("clearCacheButton").addEventListener("click", async () => {
         if (!confirm("캐시를 초기화하면 앱이 다시 로딩됩니다. 계속할까요?")) return;
