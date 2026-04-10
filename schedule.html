@@ -86,6 +86,7 @@
     let calYear = new Date().getFullYear();
     let calMonth = new Date().getMonth();
     let currentDateKey = null;
+    let editingIdx = null;
 
     // ── 유틸 ──
     function dateKey(y, m1, d) {
@@ -138,6 +139,7 @@
     // ── 날짜 상세 ──
     function openDay(key, day) {
       currentDateKey = key;
+      editingIdx = null;
       const panel = document.getElementById("dayPanel");
       document.getElementById("dayTitle").textContent = formatDateLabel(key);
       renderDayList(key);
@@ -153,25 +155,66 @@
       const list = schedules[key] || [];
       if (list.length === 0) {
         el.innerHTML = `<p class="empty">이 날의 일정이 없습니다.</p>`;
+        editingIdx = null;
         return;
       }
       el.innerHTML = `<div class="notes-card">` +
-        list.map((s, idx) => `
-          <div class="note-item">
+        list.map((s, idx) => {
+          if (editingIdx === idx) {
+            return `<div class="note-item">
+              <div class="schedule-add-form" style="margin:0;padding:0;border:none">
+                <input type="text" class="sch-edit-time" value="${escHtml(s.time || "")}" placeholder="시간" maxlength="20" lang="ko" autocapitalize="off" autocorrect="off" spellcheck="false" />
+                <input type="text" class="sch-edit-title" value="${escHtml(s.title)}" placeholder="제목" maxlength="50" lang="ko" autocapitalize="off" autocorrect="off" spellcheck="false" />
+                <textarea class="sch-edit-memo" rows="2" placeholder="메모 (선택)" lang="ko" autocapitalize="off" autocorrect="off" spellcheck="false">${escHtml(s.memo || "")}</textarea>
+                <div class="detail-action-row">
+                  <button type="button" class="sch-save-btn" data-idx="${idx}">저장</button>
+                  <button type="button" class="sch-cancel-btn secondary-button">취소</button>
+                </div>
+              </div>
+            </div>`;
+          }
+          return `<div class="note-item">
             <div class="note-head">
               <div class="note-date">${escHtml(s.time || "시간 미정")}</div>
-              <button type="button" class="mini-button danger-mini" data-idx="${idx}">삭제</button>
+              <div style="display:flex;gap:4px">
+                <button type="button" class="mini-button sch-edit-btn" data-idx="${idx}">수정</button>
+                <button type="button" class="mini-button danger-mini sch-del-btn" data-idx="${idx}">삭제</button>
+              </div>
             </div>
             <div class="schedule-title-text">${escHtml(s.title)}</div>
             ${s.memo ? `<div class="note-text" style="margin-top:4px">${escHtml(s.memo).replace(/\n/g,"<br>")}</div>` : ""}
-          </div>`).join("") + `</div>`;
+          </div>`;
+        }).join("") + `</div>`;
 
-      el.querySelectorAll("[data-idx]").forEach(btn => {
+      el.querySelectorAll(".sch-edit-btn").forEach(btn => {
+        btn.addEventListener("click", () => {
+          editingIdx = Number(btn.dataset.idx);
+          renderDayList(currentDateKey);
+        });
+      });
+      el.querySelector(".sch-cancel-btn")?.addEventListener("click", () => {
+        editingIdx = null;
+        renderDayList(currentDateKey);
+      });
+      el.querySelector(".sch-save-btn")?.addEventListener("click", (e) => {
+        const idx   = Number(e.target.dataset.idx);
+        const time  = el.querySelector(".sch-edit-time").value.trim();
+        const title = el.querySelector(".sch-edit-title").value.trim();
+        const memo  = el.querySelector(".sch-edit-memo").value.trim();
+        if (!title) { alert("제목을 입력하세요."); return; }
+        schedules[currentDateKey][idx] = { ...schedules[currentDateKey][idx], time, title, memo };
+        save(schedules);
+        editingIdx = null;
+        renderDayList(currentDateKey);
+        renderCalendar();
+      });
+      el.querySelectorAll(".sch-del-btn").forEach(btn => {
         btn.addEventListener("click", () => {
           if (!confirm("이 일정을 삭제할까요?")) return;
           schedules[currentDateKey].splice(Number(btn.dataset.idx), 1);
           if (schedules[currentDateKey].length === 0) delete schedules[currentDateKey];
           save(schedules);
+          editingIdx = null;
           renderDayList(currentDateKey);
           renderCalendar();
         });

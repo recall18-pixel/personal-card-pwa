@@ -176,8 +176,14 @@
                   lang="ko" autocapitalize="off" autocorrect="off" spellcheck="false"></textarea>
               </div>
             </div>
-            <div class="detail-action-row">
+            <div id="contractTerminatedBadge" hidden style="background:#fef2f2;border:1.5px solid #fecaca;border-radius:.5rem;padding:.5rem .75rem;margin-bottom:.5rem;display:flex;align-items:center;gap:.5rem;font-size:.85rem;color:#dc2626;flex-wrap:wrap">
+              <span>계약 종료됨 ·</span>
+              <strong id="contractTerminatedDate"></strong>
+              <button type="button" id="btnUndoTerminate" class="mini-button" style="margin-left:auto">종료취소</button>
+            </div>
+            <div class="detail-action-row" style="gap:8px;flex-wrap:wrap">
               <button type="button" id="btnSaveContract">저장</button>
+              <button type="button" id="btnTerminateContract" class="toolbar-button" style="background:#fff;color:#ef4444;border:1.5px solid #ef4444">계약종료</button>
             </div>
           </div>
 
@@ -262,14 +268,16 @@
       });
     }
 
-    // YYYY-MM 목록 생성 (계약기간 기반)
-    function genMonthList(startDate, endDate) {
+    // YYYY-MM 목록 생성 (시작 ~ 오늘, 계약종료 시 종료일 기준)
+    function genMonthList(startDate, terminatedDate) {
       if (!startDate) return [];
       const today = new Date(); today.setDate(1); today.setHours(0,0,0,0);
       const start = new Date(startDate); start.setDate(1);
-      const end   = endDate ? new Date(endDate) : today;
-      end.setDate(1);
-      const until = end > today ? today : end;
+      let until = today;
+      if (terminatedDate) {
+        const t = new Date(terminatedDate); t.setDate(1);
+        if (t < today) until = t;
+      }
       const list = [];
       const cur = new Date(start);
       while (cur <= until) {
@@ -455,83 +463,98 @@
       document.getElementById("rc-start").value   = c.start   || "";
       document.getElementById("rc-end").value     = c.end     || "";
       document.getElementById("rc-note").value    = c.note    || "";
+      // 계약종료 상태 표시
+      const badge   = document.getElementById("contractTerminatedBadge");
+      const termBtn = document.getElementById("btnTerminateContract");
+      if (c.terminated) {
+        badge.hidden = false;
+        document.getElementById("contractTerminatedDate").textContent = c.terminatedAt || "";
+        if (termBtn) termBtn.hidden = true;
+      } else {
+        badge.hidden = true;
+        if (termBtn) termBtn.hidden = false;
+      }
     }
 
-    // ── 납부내역: 실제 납부일 기록 + 계약기간 기반 미납 자동 표시 ──
+    // ── 납부내역: 실제 납부일 기록 + 시작일~오늘 기준 미납 자동 표시 ──
     function renderPayments(room) {
       const listEl    = document.getElementById("paymentList");
       const summaryEl = document.getElementById("paymentSummary");
       if (!listEl) return;
 
       const c        = room.contract || {};
-      const monthly  = parseMoneyVal(c.monthly || ""); // 만원 단위
-      const payments = room.payments || []; // [{id, date, note}] — 납부한 날짜들
+      const monthly  = parseMoneyVal(c.monthly || "");
+      const payments = room.payments || [];
 
-      // 계약기간 기반 월 목록 생성
-      const months = genMonthList(c.start, c.end);
-
-      // 납부된 월 집합 (YYYY-MM)
-      const paidMonths = new Set(payments.map(p => p.date?.slice(0,7)).filter(Boolean));
-
-      // 미납 월 + 미납 금액
-      const unpaidMonths = months.filter(m => !paidMonths.has(m));
-      const unpaidTotal  = isNaN(monthly) ? null : unpaidMonths.length * monthly;
+      // 시작일 ~ 오늘 (계약종료 버튼 누른 경우 종료일 기준)
+      const months     = genMonthList(c.start, c.terminated ? c.terminatedAt : null);
+      const unpaidCount = months.filter(m => !payments.some(p => p.date?.slice(0,7) === m)).length;
+      const paidCount   = months.length - unpaidCount;
+      const unpaidTotal = isNaN(monthly) ? null : unpaidCount * monthly;
 
       // 요약
       if (summaryEl) {
-        if (months.length === 0) {
-          summaryEl.innerHTML = `<div style="font-size:.85rem;color:var(--text-light)">계약정보 탭에서 계약 시작일을 입력하면 미납 현황이 자동으로 표시됩니다.</div>`;
+        if (months.length === 0 && payments.length === 0) {
+          summaryEl.innerHTML = `<div style="font-size:.85rem;color:var(--text-light)">계약정보 탭에서 계약 시작일을 입력하면 납부 현황이 자동으로 표시됩니다.</div>`;
+        } else if (months.length === 0) {
+          summaryEl.innerHTML = `<div class="report-row"><span class="report-item"><span class="report-label">납부 기록</span><span class="report-value">${payments.length}회</span></span></div>`;
         } else {
           summaryEl.innerHTML = `<div class="report-row">
-            <span class="report-item"><span class="report-label">전체 개월</span><span class="report-value">${months.length}개월</span></span>
-            <span class="report-item"><span class="report-label">납부</span><span class="report-value">${paidMonths.size}회</span></span>
-            <span class="report-item"><span class="report-label" style="color:#ef4444">미납</span><span class="report-value" style="color:#ef4444">${unpaidMonths.length}개월</span></span>
+            <span class="report-item"><span class="report-label">전체</span><span class="report-value">${months.length}개월</span></span>
+            <span class="report-item"><span class="report-label">납부</span><span class="report-value">${paidCount}회</span></span>
+            <span class="report-item"><span class="report-label" style="color:#ef4444">미납</span><span class="report-value" style="color:#ef4444">${unpaidCount}개월</span></span>
             ${unpaidTotal !== null && unpaidTotal > 0 ? `<span class="report-item"><span class="report-label" style="color:#ef4444">미납금</span><span class="report-value" style="color:#ef4444">${unpaidTotal.toLocaleString()}만원</span></span>` : ""}
           </div>`;
         }
       }
 
-      if (months.length === 0 && payments.length === 0) {
-        listEl.innerHTML = `<p class="empty">계약 시작일이 없거나 납부 기록이 없습니다.</p>`;
-        return;
-      }
-
-      // 납부일 기록 (최신순)
-      const payRows = payments.slice().sort((a,b) => b.date.localeCompare(a.date)).map((pay, i) => {
-        // 이 납부일이 속한 월
-        const payMonth = pay.date?.slice(0,7) || "";
-        const ymLabel  = payMonth ? `${payMonth.replace("-","년 ")}월` : "";
-        return `
-          <div class="payment-item payment-paid">
+      // 합산 리스트: 월별 납부/미납 (최신순)
+      let html = "";
+      months.slice().reverse().forEach(ym => {
+        const label = `${ym.slice(0,4)}년 ${Number(ym.slice(5))}월`;
+        const paid  = payments.find(p => p.date?.slice(0,7) === ym);
+        if (paid) {
+          html += `<div class="payment-item payment-paid">
             <div class="payment-main">
-              <div style="display:flex;align-items:center;gap:.5rem">
-                <span class="payment-month">${esc(pay.date)}</span>
-                ${ymLabel ? `<span class="payment-amount">(${esc(ymLabel)} 납부)</span>` : ""}
-              </div>
-              ${pay.note ? `<div class="payment-note">${esc(pay.note)}</div>` : ""}
+              <div class="payment-month">${esc(label)}</div>
+              <div class="payment-amount">납부일: ${esc(paid.date)}${paid.note ? ` · ${esc(paid.note)}` : ""}</div>
+            </div>
+            <div style="display:flex;align-items:center;gap:.4rem;flex-shrink:0">
+              <span class="payment-badge payment-paid">납부완료</span>
+              <button type="button" class="mini-button pay-del" data-pid="${esc(paid.id)}">삭제</button>
+            </div>
+          </div>`;
+        } else {
+          const amt = isNaN(monthly) ? "" : ` · ${monthly.toLocaleString()}만원`;
+          html += `<div class="payment-item payment-unpaid">
+            <div class="payment-main">
+              <div class="payment-month" style="color:#ef4444">${esc(label)}</div>
+              ${amt ? `<div class="payment-amount" style="color:#ef4444">미납${amt}</div>` : ""}
+            </div>
+            <span class="payment-badge payment-unpaid">미납</span>
+          </div>`;
+        }
+      });
+
+      // 계약기간 외 납부 기록
+      const orphaned = payments.filter(p => p.date && !months.includes(p.date.slice(0,7)));
+      if (orphaned.length > 0) {
+        html += `<div style="margin:.6rem 0 .3rem;font-size:.78rem;color:var(--text-light);text-align:center">─ 기간 외 납부 기록 ─</div>`;
+        orphaned.slice().sort((a,b) => b.date.localeCompare(a.date)).forEach(pay => {
+          html += `<div class="payment-item payment-paid">
+            <div class="payment-main">
+              <div class="payment-month">${esc(pay.date)}</div>
+              ${pay.note ? `<div class="payment-amount">${esc(pay.note)}</div>` : ""}
             </div>
             <div style="display:flex;align-items:center;gap:.4rem;flex-shrink:0">
               <span class="payment-badge payment-paid">납부완료</span>
               <button type="button" class="mini-button pay-del" data-pid="${esc(pay.id)}">삭제</button>
             </div>
           </div>`;
-      }).join("");
+        });
+      }
 
-      // 미납 월 목록 (최신순)
-      const unpaidRows = unpaidMonths.slice().reverse().map(ym => {
-        const label = `${ym.replace("-","년 ")}월`;
-        const amt   = isNaN(monthly) ? "" : `· ${monthly.toLocaleString()}만원`;
-        return `
-          <div class="payment-item payment-unpaid">
-            <div class="payment-main">
-              <span class="payment-month" style="color:#ef4444">${esc(label)}</span>
-              ${amt ? `<span class="payment-amount" style="color:#ef4444">${amt} 미납</span>` : ""}
-            </div>
-            <span class="payment-badge payment-unpaid">미납</span>
-          </div>`;
-      }).join("");
-
-      listEl.innerHTML = (payRows || "") + (unpaidRows ? `<div style="margin-top:.5rem;font-size:.78rem;color:var(--text-light);padding:.2rem 0">─ 미납 현황 ─</div>` + unpaidRows : "");
+      listEl.innerHTML = html || `<p class="empty">계약 시작일이 없거나 납부 기록이 없습니다.</p>`;
 
       listEl.querySelectorAll(".pay-del").forEach(btn => {
         btn.addEventListener("click", () => {
@@ -647,6 +670,34 @@
       };
       save(props);
       alert("저장됐습니다.");
+    });
+
+    document.getElementById("btnTerminateContract").addEventListener("click", () => {
+      const p    = props.find(x => x.id === curPropId);
+      const room = p?.rooms?.find(r => r.id === curRoomId);
+      if (!room || !confirm("계약을 종료 처리하시겠습니까?\n납부 기간이 오늘 기준으로 마감됩니다.")) return;
+      if (!room.contract) room.contract = {};
+      const today = new Date();
+      room.contract.terminated   = true;
+      room.contract.terminatedAt = `${today.getFullYear()}-${pad(today.getMonth()+1)}-${pad(today.getDate())}`;
+      room.contract.ctype = "공실";
+      document.getElementById("rc-ctype").value = "공실";
+      save(props);
+      fillContract(room);
+      renderRoomGrid(p);
+      renderReport(p);
+    });
+
+    document.getElementById("btnUndoTerminate").addEventListener("click", () => {
+      const p    = props.find(x => x.id === curPropId);
+      const room = p?.rooms?.find(r => r.id === curRoomId);
+      if (!room || !confirm("계약 종료를 취소하시겠습니까?")) return;
+      room.contract.terminated = false;
+      delete room.contract.terminatedAt;
+      save(props);
+      fillContract(room);
+      renderRoomGrid(p);
+      renderReport(p);
     });
 
     document.getElementById("btnAddPayment").addEventListener("click", () => {

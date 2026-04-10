@@ -66,6 +66,12 @@
       return String(v).replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;");
     }
 
+    function pad(n) { return String(n).padStart(2, "0"); }
+    function todayStr() {
+      const d = new Date();
+      return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+    }
+
     let items = load();
 
     function render() {
@@ -93,17 +99,31 @@
       sorted.forEach((item) => {
         const row = document.createElement("div");
         row.className = `tdl-item${item.done ? " tdl-done" : ""}`;
+        const metaParts = [];
+        if (item.createdAt) metaParts.push(`추가: ${item.createdAt}`);
+        if (item.done && item.doneAt) metaParts.push(`완료: ${item.doneAt}`);
         row.innerHTML = `
           <input type="checkbox" class="tdl-check" data-id="${escHtml(item.id)}" ${item.done ? "checked" : ""} />
-          <span class="tdl-text">${escHtml(item.text)}</span>
+          <div class="tdl-text-block">
+            <span class="tdl-text">${escHtml(item.text)}</span>
+            ${metaParts.length ? `<span class="tdl-meta">${escHtml(metaParts.join(" · "))}</span>` : ""}
+          </div>
           <button type="button" class="tdl-del-btn" data-id="${escHtml(item.id)}" title="삭제">✕</button>
         `;
 
         row.querySelector(".tdl-check").addEventListener("change", (e) => {
           const target = items.find(i => i.id === item.id);
-          if (target) { target.done = e.target.checked; save(items); render(); }
+          if (target) {
+            target.done = e.target.checked;
+            if (e.target.checked) {
+              target.doneAt = todayStr();
+            } else {
+              delete target.doneAt;
+            }
+            save(items); render();
+          }
         });
-        row.querySelector(".tdl-text").addEventListener("click", () => {
+        row.querySelector(".tdl-text-block").addEventListener("click", () => {
           row.querySelector(".tdl-check").click();
         });
 
@@ -121,7 +141,7 @@
       const input = document.getElementById("tdlInput");
       const text = input.value.trim();
       if (!text) return;
-      items.push({ id: String(Date.now() + Math.random()), text, done: false });
+      items.push({ id: String(Date.now() + Math.random()), text, done: false, createdAt: todayStr() });
       save(items);
       input.value = "";
       render();
