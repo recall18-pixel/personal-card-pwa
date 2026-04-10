@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#0d9488" />
+  <title>기념일 | 개인카드 PWA</title>
+  <link rel="manifest" href="manifest.json" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="app">
+    <header class="page-header">
+      <nav class="page-nav">
+        <a class="nav-link" href="index.html">홈</a>
+        <a class="nav-link" href="customer.html">고객관리</a>
+        <a class="nav-link" href="rental.html">임대관리</a>
+        <a class="nav-link" href="project.html">프로젝트</a>
+        <a class="nav-link" href="tdl.html">TDL</a>
+        <a class="nav-link" href="schedule.html">약속관리</a>
+        <a class="nav-link current" href="anniv.html">기념일</a>
+      </nav>
+      <div class="page-title-row">
+        <div>
+          <h1 class="page-title">기념일</h1>
+          <p class="page-desc">매년 반복되는 특별한 날을 관리합니다.</p>
+        </div>
+      </div>
+    </header>
+
+    <main class="container">
+      <section class="panel">
+        <div class="panel-header">
+          <h2>기념일 추가</h2>
+        </div>
+        <div class="anniv-add-form">
+          <input type="text" id="annivTitle" placeholder="기념일 이름 (예: 결혼기념일)" maxlength="30"
+            lang="ko" autocapitalize="off" autocorrect="off" spellcheck="false" />
+
+          <!-- 양력/음력 선택 -->
+          <div style="display:flex;gap:.4rem;align-items:center">
+            <label style="display:flex;align-items:center;gap:.3rem;font-size:.9rem;cursor:pointer">
+              <input type="radio" name="calType" id="calSolar" value="solar" checked />
+              양력
+            </label>
+            <label style="display:flex;align-items:center;gap:.3rem;font-size:.9rem;cursor:pointer">
+              <input type="radio" name="calType" id="calLunar" value="lunar" />
+              음력
+            </label>
+          </div>
+
+          <div style="display:flex;gap:.4rem;align-items:center">
+            <select id="annivMonth" style="flex:1">
+              <option value="">월</option>
+              <option value="1">1월</option><option value="2">2월</option>
+              <option value="3">3월</option><option value="4">4월</option>
+              <option value="5">5월</option><option value="6">6월</option>
+              <option value="7">7월</option><option value="8">8월</option>
+              <option value="9">9월</option><option value="10">10월</option>
+              <option value="11">11월</option><option value="12">12월</option>
+            </select>
+            <select id="annivDay" style="flex:1">
+              <option value="">일</option>
+            </select>
+          </div>
+          <input type="text" id="annivNote" placeholder="메모 (선택)" maxlength="50"
+            lang="ko" autocapitalize="off" autocorrect="off" spellcheck="false" />
+          <div class="detail-action-row">
+            <button type="button" id="btnAddAnniv" class="toolbar-button">추가</button>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel" style="margin-top:1rem">
+        <div class="panel-header">
+          <h2>기념일 목록</h2>
+        </div>
+        <div id="annivList" class="anniv-list"></div>
+      </section>
+    </main>
+  </div>
+
+  <script src="common.js"></script>
+  <script>
+  (function () {
+    const ANNIV_KEY = "anniv_v1";
+
+    function loadAnniv() {
+      try { return JSON.parse(localStorage.getItem(ANNIV_KEY) || "[]"); } catch { return []; }
+    }
+    function saveAnniv(data) { localStorage.setItem(ANNIV_KEY, JSON.stringify(data)); }
+    function escHtml(v) {
+      return String(v).replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;").replaceAll('"',"&quot;");
+    }
+
+    let annivItems = loadAnniv();
+
+    // 양력 기준: 오늘로부터 다음 기념일까지 남은 일수
+    function daysUntilNextSolar(month, day) {
+      const today = new Date(); today.setHours(0,0,0,0);
+      const thisYear = today.getFullYear();
+      let next = new Date(thisYear, month - 1, day);
+      if (next < today) next = new Date(thisYear + 1, month - 1, day);
+      return Math.round((next - today) / 86400000);
+    }
+
+    // 음력→양력 변환 (근사 알고리즘: Gregorian 기반 음력 테이블)
+    // 정밀도: ±1일 오차 가능. 정확한 변환은 서버 API 필요.
+    function lunarToSolar(year, lMonth, lDay) {
+      // 음력 기준 양력 1월 1일 오프셋 (1900~2100 근사값)
+      // 간단한 리스트 방식: key = "YYYY-MM" => 해당 음력 월의 양력 시작일
+      // 1900~2100년 데이터를 내장하기에는 너무 크므로,
+      // 여기서는 "해당 연도 음력 설날(음력 1/1) 양력 날짜" 근사를 이용합니다.
+      const chineseNewYear = {
+        2010:new Date(2010,1,14), 2011:new Date(2011,1,3),  2012:new Date(2012,0,23),
+        2013:new Date(2013,1,10), 2014:new Date(2014,0,31), 2015:new Date(2015,1,19),
+        2016:new Date(2016,1,8),  2017:new Date(2017,0,28), 2018:new Date(2018,1,16),
+        2019:new Date(2019,1,5),  2020:new Date(2020,0,25), 2021:new Date(2021,1,12),
+        2022:new Date(2022,1,1),  2023:new Date(2023,0,22), 2024:new Date(2024,1,10),
+        2025:new Date(2025,0,29), 2026:new Date(2026,1,17), 2027:new Date(2027,1,6),
+        2028:new Date(2028,0,26), 2029:new Date(2029,1,13), 2030:new Date(2030,1,3),
+      };
+      const cny = chineseNewYear[year];
+      if (!cny) {
+        // 근사: 연도별 설날이 없으면 양력으로 대체 반환
+        return new Date(year, lMonth - 1, lDay);
+      }
+      // 음력 1월 1일 = cny
+      // 각 음력 월은 약 29.53일
+      const avgLunarMonth = 29.530588;
+      const dayOffset = Math.round((lMonth - 1) * avgLunarMonth) + (lDay - 1);
+      const solar = new Date(cny.getTime() + dayOffset * 86400000);
+      return solar;
+    }
+
+    function daysUntilNext(item) {
+      const today = new Date(); today.setHours(0,0,0,0);
+      const thisYear = today.getFullYear();
+
+      if (item.calType === "lunar") {
+        // 올해 음력 날짜 → 양력 변환
+        let solar = lunarToSolar(thisYear, item.month, item.day);
+        solar.setHours(0,0,0,0);
+        if (solar < today) {
+          // 내년 음력으로 계산
+          solar = lunarToSolar(thisYear + 1, item.month, item.day);
+          solar.setHours(0,0,0,0);
+        }
+        return Math.round((solar - today) / 86400000);
+      } else {
+        // 양력
+        let next = new Date(thisYear, item.month - 1, item.day);
+        if (next < today) next = new Date(thisYear + 1, item.month - 1, item.day);
+        return Math.round((next - today) / 86400000);
+      }
+    }
+
+    // 기념일 목록 렌더
+    function renderAnnivList() {
+      const el = document.getElementById("annivList");
+      if (!el) return;
+      if (!annivItems.length) {
+        el.innerHTML = `<p class="empty">기념일이 없습니다. 위에서 추가해보세요.</p>`;
+        return;
+      }
+      const sorted = annivItems.slice().sort((a, b) => daysUntilNext(a) - daysUntilNext(b));
+      el.innerHTML = sorted.map(a => {
+        const days = daysUntilNext(a);
+        const badge = days === 0
+          ? `<span class="anniv-badge today">D-day</span>`
+          : days <= 7
+            ? `<span class="anniv-badge soon">D-${days}</span>`
+            : `<span class="anniv-badge">${a.month}/${a.day}</span>`;
+        const calLabel = a.calType === "lunar"
+          ? `<span style="font-size:.72rem;color:var(--brand-strong);background:var(--bg);border-radius:.3rem;padding:.05rem .3rem;border:1px solid var(--brand)">음력</span>`
+          : `<span style="font-size:.72rem;color:var(--text-light);background:var(--bg);border-radius:.3rem;padding:.05rem .3rem;border:1px solid var(--border)">양력</span>`;
+        return `<div class="anniv-item">
+          <div class="anniv-info">
+            ${badge}
+            <div>
+              <div class="anniv-title">${escHtml(a.title)} ${calLabel}</div>
+              ${a.note ? `<div class="anniv-note">${escHtml(a.note)}</div>` : ""}
+              <div style="font-size:.75rem;color:var(--text-light)">${a.month}월 ${a.day}일${a.calType === "lunar" ? " (음력)" : ""} · ${days === 0 ? "오늘" : days + "일 후"}</div>
+            </div>
+          </div>
+          <button type="button" class="mini-button danger-mini anniv-del" data-id="${escHtml(a.id)}">삭제</button>
+        </div>`;
+      }).join("");
+      el.querySelectorAll(".anniv-del").forEach(btn => {
+        btn.addEventListener("click", () => {
+          if (!confirm("이 기념일을 삭제할까요?")) return;
+          annivItems = annivItems.filter(x => x.id !== btn.dataset.id);
+          saveAnniv(annivItems);
+          renderAnnivList();
+        });
+      });
+    }
+
+    // 일(day) 드롭다운 채우기
+    function fillDays(month) {
+      const dayEl = document.getElementById("annivDay");
+      const cur = dayEl.value;
+      const last = month ? new Date(2024, Number(month), 0).getDate() : 31;
+      dayEl.innerHTML = `<option value="">일</option>` +
+        Array.from({length: last}, (_, i) => `<option value="${i+1}">${i+1}일</option>`).join("");
+      if (cur && Number(cur) <= last) dayEl.value = cur;
+    }
+    document.getElementById("annivMonth").addEventListener("change", e => fillDays(e.target.value));
+    fillDays("");
+
+    // 기념일 추가
+    document.getElementById("btnAddAnniv").addEventListener("click", () => {
+      const title = document.getElementById("annivTitle").value.trim();
+      const month = Number(document.getElementById("annivMonth").value);
+      const day   = Number(document.getElementById("annivDay").value);
+      const note  = document.getElementById("annivNote").value.trim();
+      const calType = document.querySelector("input[name='calType']:checked")?.value || "solar";
+      if (!title) { alert("기념일 이름을 입력하세요."); return; }
+      if (!month || !day) { alert("월과 일을 선택하세요."); return; }
+      annivItems.push({ id: String(Date.now()), title, month, day, note, calType });
+      saveAnniv(annivItems);
+      document.getElementById("annivTitle").value = "";
+      document.getElementById("annivMonth").value = "";
+      document.getElementById("annivDay").value   = "";
+      document.getElementById("annivNote").value  = "";
+      document.getElementById("calSolar").checked = true;
+      fillDays("");
+      renderAnnivList();
+    });
+
+    document.getElementById("annivTitle").addEventListener("keydown", e => {
+      if (e.key === "Enter") document.getElementById("btnAddAnniv").click();
+    });
+
+    renderAnnivList();
+  })();
+  </script>
+</body>
+</html>

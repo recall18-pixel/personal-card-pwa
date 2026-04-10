@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="ko">
 <head>
   <meta charset="UTF-8" />
@@ -19,6 +19,7 @@
         <a class="nav-link" href="tdl.html">TDL</a>
         <a class="nav-link" href="schedule.html">약속관리</a>
         <a class="nav-link" href="settings.html">설정</a>
+        <a class="nav-link" href="anniv.html">기념일</a>
       </nav>
       <div class="page-title-row">
         <div>
@@ -188,29 +189,30 @@
       el.innerHTML = notes.slice().reverse().map((note, ri) => {
         const realIdx = notes.length - 1 - ri;
         if (editingNote && editingNote.field === field && editingNote.idx === realIdx) {
-          return `<div style="padding:.45rem .25rem">
+          return `<div style="padding:.35rem 0">
             <textarea class="note-edit-textarea" rows="4" lang="ko" autocapitalize="off" autocorrect="off" spellcheck="false"
               style="width:100%;font-size:.9rem;padding:.55rem .75rem;border:1.5px solid var(--brand);border-radius:.5rem;font-family:inherit;box-sizing:border-box;resize:vertical"
             >${escHtml(note.content)}</textarea>
-            <div class="detail-action-row" style="margin-top:.4rem">
-              <button type="button" class="note-edit-save" data-idx="${realIdx}" data-field="${field}">저장</button>
-              <button type="button" class="note-edit-cancel secondary-button">취소</button>
+            <div style="display:flex;gap:.4rem;margin-top:.3rem">
+              <button type="button" class="note-edit-save mini-button" data-idx="${realIdx}" data-field="${field}">저장</button>
+              <button type="button" class="note-edit-cancel mini-button" style="background:var(--bg);color:var(--text-light);border-color:var(--border)">취소</button>
+              <button type="button" class="mini-button danger-mini" data-del="${realIdx}" data-field="${field}" style="margin-left:auto">삭제</button>
             </div>
           </div>`;
         }
-        return `<div style="padding:.45rem .25rem;display:flex;align-items:flex-start;gap:.5rem">
-          <div style="flex:1;font-size:.9rem;line-height:1.7;word-break:break-all">${escHtml(note.content).replace(/\n/g,"<br>")}</div>
-          <div style="display:flex;flex-direction:column;gap:4px;flex-shrink:0">
-            <button type="button" class="mini-button note-edit-btn" data-idx="${realIdx}" data-field="${field}">수정</button>
-            <button type="button" class="mini-button" data-del="${realIdx}" data-field="${field}">삭제</button>
-          </div>
-        </div>`;
+        return `<div class="note-click-item" data-idx="${realIdx}" data-field="${field}"
+          style="padding:.45rem .3rem;font-size:.9rem;line-height:1.7;word-break:break-all;cursor:text;border-radius:.4rem;transition:background .15s"
+          title="클릭하여 수정">${escHtml(note.content).replace(/\n/g,"<br>")}</div>`;
       }).join("");
 
-      el.querySelectorAll(".note-edit-btn").forEach(btn => {
-        btn.addEventListener("click", () => {
-          editingNote = { field: btn.dataset.field, idx: Number(btn.dataset.idx) };
+      // 클릭하면 바로 편집
+      el.querySelectorAll(".note-click-item").forEach(div => {
+        div.addEventListener("click", () => {
+          editingNote = { field: div.dataset.field, idx: Number(div.dataset.idx) };
           renderTabNotes(tab, proj);
+          // textarea에 포커스 + 커서를 끝으로
+          const ta = el.querySelector(".note-edit-textarea");
+          if (ta) { ta.focus(); ta.selectionStart = ta.selectionEnd = ta.value.length; }
         });
       });
       el.querySelector(".note-edit-cancel")?.addEventListener("click", () => {
@@ -229,8 +231,20 @@
         editingNote = null;
         renderTabNotes(tab, p);
       });
+      // Ctrl+Enter 로도 저장
+      el.querySelector(".note-edit-textarea")?.addEventListener("keydown", (e) => {
+        if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
+          e.preventDefault();
+          el.querySelector(".note-edit-save")?.click();
+        }
+        if (e.key === "Escape") {
+          editingNote = null;
+          renderTabNotes(tab, proj);
+        }
+      });
       el.querySelectorAll("[data-del]").forEach(btn => {
-        btn.addEventListener("click", () => {
+        btn.addEventListener("click", (e) => {
+          e.stopPropagation();
           const idx = Number(btn.dataset.del);
           const f = btn.dataset.field;
           const p = projects.find(p => p.id === currentProjectId);

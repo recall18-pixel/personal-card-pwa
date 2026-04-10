@@ -1166,6 +1166,13 @@ body.sheet-open {
 /* =============================================
    프로젝트 페이지
    ============================================= */
+/* 노트 항목 클릭 편집 */
+.note-click-item:hover {
+  background: var(--bg);
+}
+.note-click-item:active {
+  background: #e4f0ef;
+}
 .project-add-form {
   display: flex;
   gap: .5rem;
