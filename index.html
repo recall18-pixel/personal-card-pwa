@@ -22,6 +22,13 @@
         <a href="schedule.html" class="upcoming-link">확인하기 →</a>
       </div>
 
+      <!-- 다가오는 기념일 알림 배너 -->
+      <div id="annivBanner" class="upcoming-banner" style="background:#fff7ed;border-color:#fed7aa" hidden>
+        <span class="upcoming-blink" style="color:#f97316">●</span>
+        <span id="annivText" style="color:#c2410c"></span>
+        <button type="button" id="annivBannerBtn" class="upcoming-link" style="background:none;border:none;cursor:pointer;padding:0;color:#c2410c;font-weight:600">확인하기 →</button>
+      </div>
+
       <div class="home-grid">
         <a class="home-card" href="customer.html">
           <strong>고객관리</strong>
@@ -47,6 +54,45 @@
           <strong>설정</strong>
           <span>앱 설정과 데이터 점검</span>
         </a>
+        <button type="button" class="home-card anniv-home-card" id="annivCardBtn">
+          <strong>기념일</strong>
+          <span>매년 반복되는 특별한 날</span>
+        </button>
+      </div>
+
+      <!-- 기념일 관리 패널 -->
+      <div id="annivPanel" class="anniv-panel" hidden>
+        <div class="anniv-panel-header">
+          <h3>기념일 관리</h3>
+          <button type="button" id="annivPanelClose" class="secondary-button toolbar-button">닫기</button>
+        </div>
+        <!-- 추가 폼 -->
+        <div class="anniv-add-form">
+          <input type="text" id="annivTitle" placeholder="기념일 이름 (예: 결혼기념일)" maxlength="30"
+            lang="ko" autocapitalize="off" autocorrect="off" spellcheck="false" />
+          <div style="display:flex;gap:.4rem;align-items:center">
+            <select id="annivMonth" style="flex:1">
+              <option value="">월</option>
+              <option value="1">1월</option><option value="2">2월</option>
+              <option value="3">3월</option><option value="4">4월</option>
+              <option value="5">5월</option><option value="6">6월</option>
+              <option value="7">7월</option><option value="8">8월</option>
+              <option value="9">9월</option><option value="10">10월</option>
+              <option value="11">11월</option><option value="12">12월</option>
+            </select>
+            <select id="annivDay" style="flex:1">
+              <option value="">일</option>
+            </select>
+          </div>
+          <input type="text" id="annivNote" placeholder="메모 (선택)" maxlength="50"
+            lang="ko" autocapitalize="off" autocorrect="off" spellcheck="false" />
+          <div class="detail-action-row">
+            <button type="button" id="btnAddAnniv" class="toolbar-button">추가</button>
+          </div>
+        </div>
+        <div id="annivList" class="anniv-list"></div>
+      </div>
+
       </div>
     </div>
   </section>
@@ -54,43 +100,157 @@
   <script src="common.js"></script>
   <script>
   (function () {
-    // 3일 이내 약속 알림
+    const ANNIV_KEY = "anniv_v1";
+
+    function loadAnniv() {
+      try { return JSON.parse(localStorage.getItem(ANNIV_KEY) || "[]"); } catch { return []; }
+    }
+    function saveAnniv(data) { localStorage.setItem(ANNIV_KEY, JSON.stringify(data)); }
+    function escHtml(v) {
+      return String(v).replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;");
+    }
+
+    let annivItems = loadAnniv();
+
+    // 오늘로부터 다음 기념일까지 남은 일수 계산
+    function daysUntilNext(month, day) {
+      const today = new Date(); today.setHours(0,0,0,0);
+      const thisYear = today.getFullYear();
+      let next = new Date(thisYear, month - 1, day);
+      if (next < today) next = new Date(thisYear + 1, month - 1, day);
+      return Math.round((next - today) / 86400000);
+    }
+
+    // 약속 알림 (3일 이내)
     function checkUpcoming() {
       const STORAGE_KEY = "schedule_v1";
       let schedules = {};
       try { schedules = JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}"); } catch {}
-
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
+      const today = new Date(); today.setHours(0,0,0,0);
       const soon = [];
-
       Object.keys(schedules).forEach(key => {
-        if (!schedules[key] || schedules[key].length === 0) return;
-        // key: YYYYMMDD
-        const y = Number(key.slice(0,4));
-        const m = Number(key.slice(4,6)) - 1;
-        const d = Number(key.slice(6,8));
+        if (!schedules[key]?.length) return;
+        const y = Number(key.slice(0,4)), m = Number(key.slice(4,6))-1, d = Number(key.slice(6,8));
         const date = new Date(y, m, d);
-        const diffDays = Math.round((date - today) / 86400000);
-        if (diffDays >= 0 && diffDays <= 3) {
-          schedules[key].forEach(s => {
-            soon.push({ diffDays, date, title: s.title, time: s.time });
-          });
+        const diff = Math.round((date - today) / 86400000);
+        if (diff >= 0 && diff <= 3) {
+          schedules[key].forEach(s => soon.push({ diff, date, title: s.title, time: s.time }));
         }
       });
-
-      if (soon.length === 0) return;
-
-      soon.sort((a, b) => a.date - b.date);
+      if (!soon.length) return;
+      soon.sort((a,b) => a.date - b.date);
       const s = soon[0];
-      const dayLabel = s.diffDays === 0 ? "오늘" : s.diffDays === 1 ? "내일" : `${s.diffDays}일 후`;
-      const timeLabel = s.time ? ` ${s.time}` : "";
+      const label = s.diff === 0 ? "오늘" : s.diff === 1 ? "내일" : `${s.diff}일 후`;
+      const time  = s.time ? ` ${s.time}` : "";
       document.getElementById("upcomingText").textContent =
-        `${dayLabel}${timeLabel} — ${s.title}${soon.length > 1 ? ` 외 ${soon.length - 1}건` : ""}`;
+        `${label}${time} — ${s.title}${soon.length > 1 ? ` 외 ${soon.length-1}건` : ""}`;
       document.getElementById("upcomingBanner").hidden = false;
     }
 
+    // 기념일 알림 (7일 이내)
+    function checkAnniv() {
+      const upcoming = annivItems
+        .map(a => ({ ...a, days: daysUntilNext(a.month, a.day) }))
+        .filter(a => a.days <= 7)
+        .sort((a,b) => a.days - b.days);
+      if (!upcoming.length) return;
+      const a   = upcoming[0];
+      const lbl = a.days === 0 ? "오늘" : a.days === 1 ? "내일" : `${a.days}일 후`;
+      document.getElementById("annivText").textContent =
+        `${lbl} — ${a.title} (${a.month}/${a.day})${upcoming.length > 1 ? ` 외 ${upcoming.length-1}건` : ""}`;
+      document.getElementById("annivBanner").hidden = false;
+    }
+
+    // 기념일 목록 렌더
+    function renderAnnivList() {
+      const el = document.getElementById("annivList");
+      if (!el) return;
+      if (!annivItems.length) {
+        el.innerHTML = `<p class="empty">기념일이 없습니다. 위에서 추가해보세요.</p>`;
+        return;
+      }
+      const sorted = annivItems.slice().sort((a,b) => {
+        const da = daysUntilNext(a.month, a.day), db = daysUntilNext(b.month, b.day);
+        return da - db;
+      });
+      el.innerHTML = sorted.map(a => {
+        const days = daysUntilNext(a.month, a.day);
+        const badge = days === 0 ? `<span class="anniv-badge today">D-day</span>`
+          : days <= 7 ? `<span class="anniv-badge soon">D-${days}</span>`
+          : `<span class="anniv-badge">${a.month}/${a.day}</span>`;
+        return `<div class="anniv-item">
+          <div class="anniv-info">
+            ${badge}
+            <div>
+              <div class="anniv-title">${escHtml(a.title)}</div>
+              ${a.note ? `<div class="anniv-note">${escHtml(a.note)}</div>` : ""}
+            </div>
+          </div>
+          <button type="button" class="mini-button danger-mini anniv-del" data-id="${escHtml(a.id)}">삭제</button>
+        </div>`;
+      }).join("");
+      el.querySelectorAll(".anniv-del").forEach(btn => {
+        btn.addEventListener("click", () => {
+          if (!confirm("이 기념일을 삭제할까요?")) return;
+          annivItems = annivItems.filter(x => x.id !== btn.dataset.id);
+          saveAnniv(annivItems);
+          renderAnnivList();
+          checkAnniv();
+        });
+      });
+    }
+
+    // 일(day) 드롭다운 채우기
+    function fillDays(month) {
+      const dayEl = document.getElementById("annivDay");
+      const cur = dayEl.value;
+      const last = month ? new Date(2024, Number(month), 0).getDate() : 31;
+      dayEl.innerHTML = `<option value="">일</option>` +
+        Array.from({length: last}, (_, i) => `<option value="${i+1}">${i+1}일</option>`).join("");
+      if (cur && Number(cur) <= last) dayEl.value = cur;
+    }
+    document.getElementById("annivMonth").addEventListener("change", e => fillDays(e.target.value));
+    fillDays("");
+
+    // 기념일 추가
+    document.getElementById("btnAddAnniv").addEventListener("click", () => {
+      const title = document.getElementById("annivTitle").value.trim();
+      const month = Number(document.getElementById("annivMonth").value);
+      const day   = Number(document.getElementById("annivDay").value);
+      const note  = document.getElementById("annivNote").value.trim();
+      if (!title) { alert("기념일 이름을 입력하세요."); return; }
+      if (!month || !day) { alert("월과 일을 선택하세요."); return; }
+      annivItems.push({ id: String(Date.now()), title, month, day, note });
+      saveAnniv(annivItems);
+      document.getElementById("annivTitle").value = "";
+      document.getElementById("annivMonth").value = "";
+      document.getElementById("annivDay").value   = "";
+      document.getElementById("annivNote").value  = "";
+      fillDays("");
+      renderAnnivList();
+      checkAnniv();
+    });
+
+    // 패널 토글
+    document.getElementById("annivCardBtn").addEventListener("click", () => {
+      const p = document.getElementById("annivPanel");
+      p.hidden = !p.hidden;
+      if (!p.hidden) { renderAnnivList(); p.scrollIntoView({behavior:"smooth",block:"nearest"}); }
+    });
+    document.getElementById("annivPanelClose").addEventListener("click", () => {
+      document.getElementById("annivPanel").hidden = true;
+    });
+    document.getElementById("annivBannerBtn").addEventListener("click", () => {
+      document.getElementById("annivPanel").hidden = false;
+      renderAnnivList();
+      document.getElementById("annivPanel").scrollIntoView({behavior:"smooth",block:"nearest"});
+    });
+    document.getElementById("annivTitle").addEventListener("keydown", e => {
+      if (e.key === "Enter") document.getElementById("btnAddAnniv").click();
+    });
+
     checkUpcoming();
+    checkAnniv();
   })();
   </script>
 </body>

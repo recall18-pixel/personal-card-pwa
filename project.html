@@ -139,6 +139,7 @@
     let projects = loadProjects();
     let currentProjectId = null;
     let activeTab = "idea";
+    let editingNote = null; // { field, idx } | null
 
     // ── 목록 렌더 ──
     function renderProjectList() {
@@ -161,6 +162,7 @@
     // ── 탭 전환 ──
     function switchTab(tab) {
       activeTab = tab;
+      editingNote = null;
       document.querySelectorAll("#projectSubTabNav .sub-tab").forEach(btn => {
         btn.classList.toggle("active", btn.dataset.tab === tab);
       });
@@ -185,12 +187,48 @@
       }
       el.innerHTML = notes.slice().reverse().map((note, ri) => {
         const realIdx = notes.length - 1 - ri;
+        if (editingNote && editingNote.field === field && editingNote.idx === realIdx) {
+          return `<div style="padding:.45rem .25rem">
+            <textarea class="note-edit-textarea" rows="4" lang="ko" autocapitalize="off" autocorrect="off" spellcheck="false"
+              style="width:100%;font-size:.9rem;padding:.55rem .75rem;border:1.5px solid var(--brand);border-radius:.5rem;font-family:inherit;box-sizing:border-box;resize:vertical"
+            >${escHtml(note.content)}</textarea>
+            <div class="detail-action-row" style="margin-top:.4rem">
+              <button type="button" class="note-edit-save" data-idx="${realIdx}" data-field="${field}">저장</button>
+              <button type="button" class="note-edit-cancel secondary-button">취소</button>
+            </div>
+          </div>`;
+        }
         return `<div style="padding:.45rem .25rem;display:flex;align-items:flex-start;gap:.5rem">
           <div style="flex:1;font-size:.9rem;line-height:1.7;word-break:break-all">${escHtml(note.content).replace(/\n/g,"<br>")}</div>
-          <button type="button" class="mini-button" data-del="${realIdx}" data-field="${field}" style="flex-shrink:0">삭제</button>
+          <div style="display:flex;flex-direction:column;gap:4px;flex-shrink:0">
+            <button type="button" class="mini-button note-edit-btn" data-idx="${realIdx}" data-field="${field}">수정</button>
+            <button type="button" class="mini-button" data-del="${realIdx}" data-field="${field}">삭제</button>
+          </div>
         </div>`;
       }).join("");
 
+      el.querySelectorAll(".note-edit-btn").forEach(btn => {
+        btn.addEventListener("click", () => {
+          editingNote = { field: btn.dataset.field, idx: Number(btn.dataset.idx) };
+          renderTabNotes(tab, proj);
+        });
+      });
+      el.querySelector(".note-edit-cancel")?.addEventListener("click", () => {
+        editingNote = null;
+        renderTabNotes(tab, proj);
+      });
+      el.querySelector(".note-edit-save")?.addEventListener("click", (e) => {
+        const idx = Number(e.target.dataset.idx);
+        const f   = e.target.dataset.field;
+        const newContent = el.querySelector(".note-edit-textarea").value.trim();
+        if (!newContent) { alert("내용을 입력하세요."); return; }
+        const p = projects.find(p => p.id === currentProjectId);
+        if (!p) return;
+        p[f][idx].content = newContent;
+        saveProjects(projects);
+        editingNote = null;
+        renderTabNotes(tab, p);
+      });
       el.querySelectorAll("[data-del]").forEach(btn => {
         btn.addEventListener("click", () => {
           const idx = Number(btn.dataset.del);
@@ -199,6 +237,7 @@
           if (!p || !confirm("이 내용을 삭제할까요?")) return;
           p[f].splice(idx, 1);
           saveProjects(projects);
+          editingNote = null;
           renderTabNotes(tab, p);
         });
       });
