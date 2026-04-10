@@ -63,6 +63,10 @@
               <option value="">일</option>
             </select>
           </div>
+          <!-- 음력 선택 시 올해 양력 날짜 미리보기 -->
+          <div id="lunarPreview" hidden style="font-size:.85rem;color:var(--brand-strong);background:var(--bg);border-radius:.45rem;padding:.4rem .7rem;border:1px solid var(--brand)">
+            📅 <span id="lunarPreviewText"></span>
+          </div>
           <input type="text" id="annivNote" placeholder="메모 (선택)" maxlength="50"
             lang="ko" autocapitalize="off" autocorrect="off" spellcheck="false" />
           <div class="detail-action-row">
@@ -205,8 +209,34 @@
         Array.from({length: last}, (_, i) => `<option value="${i+1}">${i+1}일</option>`).join("");
       if (cur && Number(cur) <= last) dayEl.value = cur;
     }
-    document.getElementById("annivMonth").addEventListener("change", e => fillDays(e.target.value));
+    document.getElementById("annivMonth").addEventListener("change", e => { fillDays(e.target.value); updateLunarPreview(); });
     fillDays("");
+
+    // 음력 미리보기 업데이트
+    function updateLunarPreview() {
+      const preview = document.getElementById("lunarPreview");
+      const previewText = document.getElementById("lunarPreviewText");
+      const calType = document.querySelector("input[name='calType']:checked")?.value || "solar";
+      const month = Number(document.getElementById("annivMonth").value);
+      const day   = Number(document.getElementById("annivDay").value);
+      if (calType === "lunar" && month && day) {
+        const today = new Date();
+        const year = today.getFullYear();
+        const solar = lunarToSolar(year, month, day);
+        const m = solar.getMonth() + 1;
+        const d = solar.getDate();
+        previewText.textContent = `음력 ${month}월 ${day}일 → 올해 양력 ${m}월 ${d}일`;
+        preview.hidden = false;
+      } else {
+        preview.hidden = true;
+      }
+    }
+
+    // calType 변경 시에도 미리보기 갱신
+    document.querySelectorAll("input[name='calType']").forEach(r => {
+      r.addEventListener("change", updateLunarPreview);
+    });
+    document.getElementById("annivDay").addEventListener("change", updateLunarPreview);
 
     // 기념일 추가
     document.getElementById("btnAddAnniv").addEventListener("click", () => {
@@ -225,6 +255,7 @@
       document.getElementById("annivNote").value  = "";
       document.getElementById("calSolar").checked = true;
       fillDays("");
+      document.getElementById("lunarPreview").hidden = true;
       renderAnnivList();
     });
 
