@@ -69,22 +69,46 @@
           <div class="panel-header">
             <h2 id="propTitle"></h2>
             <div style="display:flex;gap:6px;flex-wrap:wrap">
-              <button type="button" id="btnAddRoom" class="toolbar-button">+ 호실</button>
-              <button type="button" id="btnDelProp" class="danger-button toolbar-button">물건삭제</button>
+              <button type="button" id="btnEditProp" class="secondary-button toolbar-button">물건수정</button>
+              <button type="button" id="btnDelProp" class="danger-button toolbar-button">삭제</button>
               <button type="button" id="btnBackToProps" class="secondary-button toolbar-button">← 목록</button>
+            </div>
+          </div>
+          <!-- 물건 수정 폼 -->
+          <div id="editPropForm" hidden style="background:var(--bg);border-radius:.65rem;padding:.8rem;margin-bottom:.8rem;border:1.5px solid var(--border)">
+            <div class="rental-info-form">
+              <div class="rental-field">
+                <label>물건명</label>
+                <input type="text" id="editPropName" maxlength="60" lang="ko" autocapitalize="off" autocorrect="off" spellcheck="false" />
+              </div>
+              <div class="rental-field">
+                <label>유형</label>
+                <select id="editPropType">
+                  <option value="">유형 선택</option>
+                  <option>다가구주택</option>
+                  <option>다세대주택</option>
+                  <option>아파트</option>
+                  <option>오피스텔</option>
+                  <option>빌라/연립</option>
+                  <option>단독주택</option>
+                  <option>상가</option>
+                  <option>사무실</option>
+                  <option>기타</option>
+                </select>
+              </div>
+              <div class="rental-field">
+                <label>주소</label>
+                <input type="text" id="editPropAddress" maxlength="100" lang="ko" autocapitalize="off" autocorrect="off" spellcheck="false" />
+              </div>
+            </div>
+            <div class="form-actions" style="margin-top:8px">
+              <button type="button" id="btnSaveEditProp">저장</button>
+              <button type="button" id="btnCancelEditProp" class="secondary-button">취소</button>
             </div>
           </div>
           <p id="propMeta" class="help-text"></p>
           <div id="reportBox" class="report-summary"></div>
           <div id="roomGrid" class="room-grid"></div>
-          <div id="addRoomForm" class="project-add-form" hidden style="margin-top:12px">
-            <input type="text" id="newRoomName" placeholder="호실명 (예: 201호)" maxlength="30"
-              lang="ko" autocapitalize="off" autocorrect="off" spellcheck="false" />
-            <div class="form-actions" style="margin-top:8px">
-              <button type="button" id="btnSaveRoom">추가</button>
-              <button type="button" id="btnCancelRoom" class="secondary-button">취소</button>
-            </div>
-          </div>
         </section>
       </div>
 
@@ -159,27 +183,24 @@
 
           <!-- 납부내역 탭 -->
           <div id="rTab-payment" class="sub-tab-content" hidden>
+            <!-- 미납 요약 -->
+            <div id="paymentSummary" class="report-summary" style="margin-bottom:.75rem"></div>
+            <!-- 납부일 기록 -->
             <div class="payment-add-form">
-              <div style="display:grid;grid-template-columns:1fr 1fr;gap:.5rem">
-                <div class="rental-field">
-                  <label>납부 월</label>
-                  <input type="month" id="pay-month" />
-                </div>
-                <div class="rental-field">
-                  <label>금액</label>
-                  <input type="text" id="pay-amount" placeholder="예: 40만원"
-                    lang="ko" autocorrect="off" spellcheck="false" />
-                </div>
+              <div class="rental-field">
+                <label>납부일</label>
+                <input type="date" id="pay-date" />
               </div>
               <div class="rental-field" style="margin-top:.4rem">
-                <label>메모</label>
-                <input type="text" id="pay-note" placeholder="자동이체, 현금납부 등"
+                <label>메모 (선택)</label>
+                <input type="text" id="pay-note" placeholder="예: 현금납부, 이체 등"
                   lang="ko" autocorrect="off" spellcheck="false" />
               </div>
               <div class="detail-action-row" style="margin-top:.5rem">
                 <button type="button" id="btnAddPayment">납부 기록 추가</button>
               </div>
             </div>
+            <!-- 월별 납부 목록 -->
             <div id="paymentList" class="payment-list"></div>
           </div>
 
@@ -213,22 +234,57 @@
     function esc(v) {
       return String(v).replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;");
     }
-    function now() {
+    function nowStr() {
       const d = new Date();
-      return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")} ${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")}`;
+      return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
     }
-    function fmtMonth(ym) {
-      if (!ym) return "";
-      const [y, m] = ym.split("-");
-      return `${y}년 ${m}월`;
+    function pad(n) { return String(n).padStart(2,"0"); }
+
+    // 숫자 → 회계단위 (만원/천원)
+    function toAccounting(raw) {
+      if (!raw) return "";
+      const s = String(raw).replace(/[,원만천\s]/g, "");
+      const n = parseFloat(s);
+      if (isNaN(n)) return raw;
+      if (n >= 10000) return `${(n/10000).toLocaleString("ko",{maximumFractionDigits:2})}억원`;
+      if (n >= 1)     return `${n.toLocaleString("ko")}만원`;
+      return raw;
     }
 
-    // 구버전 데이터 마이그레이션 (info/visit/memo → rooms 구조)
+    // 숫자 입력 자동 콤마
+    function addCommaInput(el) {
+      el.addEventListener("input", () => {
+        const raw = el.value.replace(/[^0-9.]/g, "");
+        if (!raw) return;
+        const parts = raw.split(".");
+        parts[0] = Number(parts[0]).toLocaleString("ko");
+        el.value = parts.join(".");
+      });
+    }
+
+    // YYYY-MM 목록 생성 (계약기간 기반)
+    function genMonthList(startDate, endDate) {
+      if (!startDate) return [];
+      const today = new Date(); today.setDate(1); today.setHours(0,0,0,0);
+      const start = new Date(startDate); start.setDate(1);
+      const end   = endDate ? new Date(endDate) : today;
+      end.setDate(1);
+      const until = end > today ? today : end;
+      const list = [];
+      const cur = new Date(start);
+      while (cur <= until) {
+        list.push(`${cur.getFullYear()}-${pad(cur.getMonth()+1)}`);
+        cur.setMonth(cur.getMonth()+1);
+      }
+      return list;
+    }
+
+    // 구버전 마이그레이션
     let props = load().map(p => {
       if (!Array.isArray(p.rooms)) {
-        p.type    = p.info?.type    || p.type    || "";
+        p.type = p.info?.type || p.type || "";
         p.address = p.info?.address || p.address || "";
-        p.rooms   = [];
+        p.rooms = [];
       }
       return p;
     });
@@ -236,7 +292,6 @@
     let curPropId = null;
     let curRoomId = null;
 
-    // ── 뷰 전환 ──
     function showView(v) {
       document.getElementById("vProps").hidden      = v !== "props";
       document.getElementById("vRooms").hidden      = v !== "rooms";
@@ -253,7 +308,7 @@
       }
       el.innerHTML = "";
       props.forEach(p => {
-        const rooms    = p.rooms || [];
+        const rooms = p.rooms || [];
         const occupied = rooms.filter(r => r.contract?.ctype && r.contract.ctype !== "공실" && r.contract.ctype !== "").length;
         const card = document.createElement("div");
         card.className = "project-card";
@@ -269,18 +324,49 @@
       });
     }
 
-    // ── 물건 열기 ──
     function openProp(id) {
       curPropId = id;
       const p = props.find(x => x.id === id);
       if (!p) return;
       document.getElementById("propTitle").textContent = p.name;
       document.getElementById("propMeta").textContent =
-        [p.type, p.address].filter(Boolean).join(" · ") || "상세 정보 없음";
+        [p.type, p.address].filter(Boolean).join(" · ") || "";
+      document.getElementById("editPropForm").hidden = true;
       renderRoomGrid(p);
       renderReport(p);
       showView("rooms");
     }
+
+    // ── 물건 수정 ──
+    document.getElementById("btnEditProp").addEventListener("click", () => {
+      const f = document.getElementById("editPropForm");
+      f.hidden = !f.hidden;
+      if (!f.hidden) {
+        const p = props.find(x => x.id === curPropId);
+        if (!p) return;
+        document.getElementById("editPropName").value    = p.name    || "";
+        document.getElementById("editPropType").value   = p.type    || "";
+        document.getElementById("editPropAddress").value= p.address || "";
+        document.getElementById("editPropName").focus();
+      }
+    });
+    document.getElementById("btnCancelEditProp").addEventListener("click", () => {
+      document.getElementById("editPropForm").hidden = true;
+    });
+    document.getElementById("btnSaveEditProp").addEventListener("click", () => {
+      const name    = document.getElementById("editPropName").value.trim();
+      const type    = document.getElementById("editPropType").value;
+      const address = document.getElementById("editPropAddress").value.trim();
+      if (!name) { alert("물건명을 입력하세요."); return; }
+      const p = props.find(x => x.id === curPropId);
+      if (!p) return;
+      p.name = name; p.type = type; p.address = address;
+      save(props);
+      document.getElementById("propTitle").textContent = p.name;
+      document.getElementById("propMeta").textContent = [p.type, p.address].filter(Boolean).join(" · ") || "";
+      document.getElementById("editPropForm").hidden = true;
+      renderProps();
+    });
 
     // ── 호실 그리드 ──
     function renderRoomGrid(p) {
@@ -288,7 +374,7 @@
       if (!el) return;
       const rooms = p.rooms || [];
       if (rooms.length === 0) {
-        el.innerHTML = `<p class="empty">호실이 없습니다. 호실을 추가해보세요.</p>`;
+        el.innerHTML = `<p class="empty">호실이 없습니다.</p>`;
         return;
       }
       el.innerHTML = rooms.map(r => {
@@ -299,7 +385,7 @@
             <div class="room-number">${esc(r.name)}</div>
             <div class="room-status">${esc(c.ctype || "미설정")}</div>
             <div class="room-tenant">${esc(c.tenant || "-")}</div>
-            <div class="room-monthly">${esc(c.monthly || "-")}</div>
+            <div class="room-monthly">${c.monthly ? toAccounting(c.monthly) : "-"}</div>
           </div>`;
       }).join("");
       el.querySelectorAll("[data-rid]").forEach(card => {
@@ -313,18 +399,24 @@
       if (!el) return;
       const rooms    = p.rooms || [];
       const occupied = rooms.filter(r => r.contract?.ctype && r.contract.ctype !== "공실" && r.contract.ctype !== "");
-      let total = 0;
+      let totalMonthly = 0;
       occupied.forEach(r => {
-        const s = (r.contract?.monthly || "").replace(/,/g, "");
-        const m = s.match(/[\d.]+/);
-        if (m) total += parseFloat(m[0]);
+        const n = parseMoneyVal(r.contract?.monthly || "");
+        if (!isNaN(n)) totalMonthly += n;
       });
       el.innerHTML = `<div class="report-row">
         <span class="report-item"><span class="report-label">전체</span><span class="report-value">${rooms.length}실</span></span>
         <span class="report-item"><span class="report-label">입주</span><span class="report-value">${occupied.length}실</span></span>
         <span class="report-item"><span class="report-label">공실</span><span class="report-value">${rooms.length - occupied.length}실</span></span>
-        ${total > 0 ? `<span class="report-item"><span class="report-label">월세 합계</span><span class="report-value">${total.toLocaleString()}만원</span></span>` : ""}
+        ${totalMonthly > 0 ? `<span class="report-item"><span class="report-label">월세합계</span><span class="report-value">${totalMonthly.toLocaleString()}만원</span></span>` : ""}
       </div>`;
+    }
+
+    function parseMoneyVal(s) {
+      if (!s) return NaN;
+      const clean = s.replace(/[,\s]/g,"");
+      const m = clean.match(/^[\d.]+/);
+      return m ? parseFloat(m[0]) : NaN;
     }
 
     // ── 호실 상세 ──
@@ -365,50 +457,88 @@
       document.getElementById("rc-note").value    = c.note    || "";
     }
 
+    // ── 납부내역: 실제 납부일 기록 + 계약기간 기반 미납 자동 표시 ──
     function renderPayments(room) {
-      const el = document.getElementById("paymentList");
-      if (!el) return;
-      const payments = room.payments || [];
-      if (payments.length === 0) {
-        el.innerHTML = `<p class="empty">납부 기록이 없습니다.</p>`;
+      const listEl    = document.getElementById("paymentList");
+      const summaryEl = document.getElementById("paymentSummary");
+      if (!listEl) return;
+
+      const c        = room.contract || {};
+      const monthly  = parseMoneyVal(c.monthly || ""); // 만원 단위
+      const payments = room.payments || []; // [{id, date, note}] — 납부한 날짜들
+
+      // 계약기간 기반 월 목록 생성
+      const months = genMonthList(c.start, c.end);
+
+      // 납부된 월 집합 (YYYY-MM)
+      const paidMonths = new Set(payments.map(p => p.date?.slice(0,7)).filter(Boolean));
+
+      // 미납 월 + 미납 금액
+      const unpaidMonths = months.filter(m => !paidMonths.has(m));
+      const unpaidTotal  = isNaN(monthly) ? null : unpaidMonths.length * monthly;
+
+      // 요약
+      if (summaryEl) {
+        if (months.length === 0) {
+          summaryEl.innerHTML = `<div style="font-size:.85rem;color:var(--text-light)">계약정보 탭에서 계약 시작일을 입력하면 미납 현황이 자동으로 표시됩니다.</div>`;
+        } else {
+          summaryEl.innerHTML = `<div class="report-row">
+            <span class="report-item"><span class="report-label">전체 개월</span><span class="report-value">${months.length}개월</span></span>
+            <span class="report-item"><span class="report-label">납부</span><span class="report-value">${paidMonths.size}회</span></span>
+            <span class="report-item"><span class="report-label" style="color:#ef4444">미납</span><span class="report-value" style="color:#ef4444">${unpaidMonths.length}개월</span></span>
+            ${unpaidTotal !== null && unpaidTotal > 0 ? `<span class="report-item"><span class="report-label" style="color:#ef4444">미납금</span><span class="report-value" style="color:#ef4444">${unpaidTotal.toLocaleString()}만원</span></span>` : ""}
+          </div>`;
+        }
+      }
+
+      if (months.length === 0 && payments.length === 0) {
+        listEl.innerHTML = `<p class="empty">계약 시작일이 없거나 납부 기록이 없습니다.</p>`;
         return;
       }
-      el.innerHTML = payments.slice().reverse().map((pay, ri) => {
-        const realIdx = payments.length - 1 - ri;
-        const pClass  = pay.paid ? "payment-paid" : "payment-unpaid";
+
+      // 납부일 기록 (최신순)
+      const payRows = payments.slice().sort((a,b) => b.date.localeCompare(a.date)).map((pay, i) => {
+        // 이 납부일이 속한 월
+        const payMonth = pay.date?.slice(0,7) || "";
+        const ymLabel  = payMonth ? `${payMonth.replace("-","년 ")}월` : "";
         return `
-          <div class="payment-item ${pClass}" data-idx="${realIdx}">
+          <div class="payment-item payment-paid">
             <div class="payment-main">
               <div style="display:flex;align-items:center;gap:.5rem">
-                <input type="checkbox" class="pay-chk" style="width:1.15rem;min-width:1.15rem;height:1.15rem;accent-color:var(--brand);cursor:pointer;flex-shrink:0" data-idx="${realIdx}" ${pay.paid ? "checked" : ""} />
-                <span class="payment-month">${esc(fmtMonth(pay.month))}</span>
-                ${pay.amount ? `<span class="payment-amount">· ${esc(pay.amount)}</span>` : ""}
+                <span class="payment-month">${esc(pay.date)}</span>
+                ${ymLabel ? `<span class="payment-amount">(${esc(ymLabel)} 납부)</span>` : ""}
               </div>
               ${pay.note ? `<div class="payment-note">${esc(pay.note)}</div>` : ""}
             </div>
             <div style="display:flex;align-items:center;gap:.4rem;flex-shrink:0">
-              <span class="payment-badge ${pClass}">${pay.paid ? "납부완료" : "미납"}</span>
-              <button type="button" class="mini-button pay-del" data-idx="${realIdx}">삭제</button>
+              <span class="payment-badge payment-paid">납부완료</span>
+              <button type="button" class="mini-button pay-del" data-pid="${esc(pay.id)}">삭제</button>
             </div>
           </div>`;
       }).join("");
 
-      el.querySelectorAll(".pay-chk").forEach(chk => {
-        chk.addEventListener("change", e => {
-          const p = props.find(x => x.id === curPropId);
-          const r = p?.rooms?.find(r => r.id === curRoomId);
-          if (!r) return;
-          r.payments[Number(chk.dataset.idx)].paid = e.target.checked;
-          save(props);
-          renderPayments(r);
-        });
-      });
-      el.querySelectorAll(".pay-del").forEach(btn => {
+      // 미납 월 목록 (최신순)
+      const unpaidRows = unpaidMonths.slice().reverse().map(ym => {
+        const label = `${ym.replace("-","년 ")}월`;
+        const amt   = isNaN(monthly) ? "" : `· ${monthly.toLocaleString()}만원`;
+        return `
+          <div class="payment-item payment-unpaid">
+            <div class="payment-main">
+              <span class="payment-month" style="color:#ef4444">${esc(label)}</span>
+              ${amt ? `<span class="payment-amount" style="color:#ef4444">${amt} 미납</span>` : ""}
+            </div>
+            <span class="payment-badge payment-unpaid">미납</span>
+          </div>`;
+      }).join("");
+
+      listEl.innerHTML = (payRows || "") + (unpaidRows ? `<div style="margin-top:.5rem;font-size:.78rem;color:var(--text-light);padding:.2rem 0">─ 미납 현황 ─</div>` + unpaidRows : "");
+
+      listEl.querySelectorAll(".pay-del").forEach(btn => {
         btn.addEventListener("click", () => {
           const p = props.find(x => x.id === curPropId);
           const r = p?.rooms?.find(r => r.id === curRoomId);
-          if (!r || !confirm("삭제할까요?")) return;
-          r.payments.splice(Number(btn.dataset.idx), 1);
+          if (!r || !confirm("납부 기록을 삭제할까요?")) return;
+          r.payments = r.payments.filter(x => x.id !== btn.dataset.pid);
           save(props);
           renderPayments(r);
         });
@@ -460,7 +590,7 @@
       const type    = document.getElementById("newPropType").value;
       const address = document.getElementById("newPropAddress").value.trim();
       if (!name) { alert("물건명을 입력하세요."); return; }
-      props.push({ id: String(Date.now()), name, type, address, rooms: [], createdAt: now() });
+      props.push({ id: String(Date.now()), name, type, address, rooms: [], createdAt: nowStr() });
       save(props);
       ["newPropName","newPropAddress"].forEach(id => document.getElementById(id).value = "");
       document.getElementById("newPropType").value = "";
@@ -480,31 +610,6 @@
       props = props.filter(x => x.id !== curPropId);
       save(props);
       document.getElementById("btnBackToProps").click();
-    });
-
-    document.getElementById("btnAddRoom").addEventListener("click", () => {
-      const f = document.getElementById("addRoomForm");
-      f.hidden = !f.hidden;
-      if (!f.hidden) document.getElementById("newRoomName").focus();
-    });
-    document.getElementById("btnCancelRoom").addEventListener("click", () => {
-      document.getElementById("addRoomForm").hidden = true;
-      document.getElementById("newRoomName").value = "";
-    });
-    document.getElementById("btnSaveRoom").addEventListener("click", () => {
-      const name = document.getElementById("newRoomName").value.trim();
-      if (!name) { alert("호실명을 입력하세요."); return; }
-      const p = props.find(x => x.id === curPropId);
-      if (!p) return;
-      if (p.rooms.some(r => r.name === name)) { alert("같은 호실명이 있습니다."); return; }
-      p.rooms.push({ id: String(Date.now()), name, contract: {}, payments: [], memos: [] });
-      save(props);
-      document.getElementById("newRoomName").value = "";
-      document.getElementById("addRoomForm").hidden = true;
-      renderRoomGrid(p); renderReport(p);
-    });
-    document.getElementById("newRoomName").addEventListener("keydown", e => {
-      if (e.key === "Enter") document.getElementById("btnSaveRoom").click();
     });
 
     document.getElementById("btnBackToRooms").addEventListener("click", () => {
@@ -545,17 +650,19 @@
     });
 
     document.getElementById("btnAddPayment").addEventListener("click", () => {
-      const month  = document.getElementById("pay-month").value;
-      const amount = document.getElementById("pay-amount").value.trim();
-      const note   = document.getElementById("pay-note").value.trim();
-      if (!month && !amount) { alert("납부 월 또는 금액을 입력해주세요."); return; }
+      const date = document.getElementById("pay-date").value;
+      const note = document.getElementById("pay-note").value.trim();
+      if (!date) { alert("납부일을 선택해주세요."); return; }
       const p    = props.find(x => x.id === curPropId);
       const room = p?.rooms?.find(r => r.id === curRoomId);
       if (!room) return;
-      room.payments.push({ id: String(Date.now()), month, amount, note, paid: false, addedAt: now() });
+      if (!Array.isArray(room.payments)) room.payments = [];
+      room.payments.push({ id: String(Date.now()), date, note });
       save(props);
-      ["pay-month","pay-amount","pay-note"].forEach(id => document.getElementById(id).value = "");
+      document.getElementById("pay-date").value = "";
+      document.getElementById("pay-note").value = "";
       renderPayments(room);
+      renderReport(p);
     });
 
     document.getElementById("btnAddRoomMemo").addEventListener("click", () => {
@@ -564,13 +671,20 @@
       const p    = props.find(x => x.id === curPropId);
       const room = p?.rooms?.find(r => r.id === curRoomId);
       if (!room) return;
-      room.memos.push({ date: now(), content });
+      if (!Array.isArray(room.memos)) room.memos = [];
+      room.memos.push({ date: nowStr(), content });
       save(props);
       document.getElementById("roomMemoInput").value = "";
       renderRoomMemos(room);
     });
     document.getElementById("roomMemoInput").addEventListener("keydown", e => {
       if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); document.getElementById("btnAddRoomMemo").click(); }
+    });
+
+    // 금액 필드 자동 콤마
+    ["rc-deposit","rc-monthly"].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) addCommaInput(el);
     });
 
     renderProps();

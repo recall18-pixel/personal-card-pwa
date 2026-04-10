@@ -54,11 +54,19 @@
       <div id="projectDetailView" hidden>
         <section class="panel">
           <div class="panel-header">
-            <h2 id="projectDetailTitle"></h2>
-            <div style="display:flex;gap:6px">
+            <h2 id="projectDetailTitle" style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></h2>
+            <div style="display:flex;gap:6px;flex-shrink:0">
+              <button type="button" id="btnRenameProject" class="secondary-button toolbar-button">수정</button>
               <button type="button" id="deleteProjectBtn" class="danger-button toolbar-button">삭제</button>
               <button type="button" id="backToProjectListBtn" class="secondary-button toolbar-button">← 목록</button>
             </div>
+          </div>
+          <div id="renameProjectForm" hidden style="display:flex;gap:.5rem;align-items:center;margin-bottom:.75rem">
+            <input type="text" id="renameProjectInput" maxlength="80" placeholder="새 프로젝트명"
+              lang="ko" autocapitalize="off" autocorrect="off" spellcheck="false"
+              style="flex:1" />
+            <button type="button" id="btnSaveRenameProject" class="toolbar-button">저장</button>
+            <button type="button" id="btnCancelRenameProject" class="secondary-button toolbar-button">취소</button>
           </div>
 
           <!-- 하위 탭 -->
@@ -251,6 +259,7 @@
     document.getElementById("backToProjectListBtn").addEventListener("click", () => {
       document.getElementById("projectDetailView").hidden = true;
       document.getElementById("projectListView").hidden = false;
+      document.getElementById("renameProjectForm").hidden = true;
       currentProjectId = null;
       renderProjectList();
     });
@@ -262,6 +271,33 @@
       projects = projects.filter(p => p.id !== currentProjectId);
       saveProjects(projects);
       document.getElementById("backToProjectListBtn").click();
+    });
+
+    document.getElementById("btnRenameProject").addEventListener("click", () => {
+      const f = document.getElementById("renameProjectForm");
+      f.hidden = !f.hidden;
+      if (!f.hidden) {
+        const proj = projects.find(p => p.id === currentProjectId);
+        document.getElementById("renameProjectInput").value = proj?.name || "";
+        document.getElementById("renameProjectInput").focus();
+      }
+    });
+    document.getElementById("btnCancelRenameProject").addEventListener("click", () => {
+      document.getElementById("renameProjectForm").hidden = true;
+    });
+    document.getElementById("btnSaveRenameProject").addEventListener("click", () => {
+      const name = document.getElementById("renameProjectInput").value.trim();
+      if (!name) { alert("프로젝트명을 입력하세요."); return; }
+      const proj = projects.find(p => p.id === currentProjectId);
+      if (!proj) return;
+      proj.name = name;
+      saveProjects(projects);
+      document.getElementById("projectDetailTitle").textContent = name;
+      document.getElementById("renameProjectForm").hidden = true;
+      renderProjectList();
+    });
+    document.getElementById("renameProjectInput").addEventListener("keydown", e => {
+      if (e.key === "Enter") document.getElementById("btnSaveRenameProject").click();
     });
 
     document.getElementById("projectSubTabNav").addEventListener("click", e => {
